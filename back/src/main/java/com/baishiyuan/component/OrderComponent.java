@@ -6,7 +6,6 @@ import com.baishiyuan.exception.MessageException;
 import com.baishiyuan.utils.Page;
 import com.baishiyuan.utils.StringConst;
 import com.baishiyuan.utils.Utils;
-import org.apache.catalina.User;
 import org.apache.poi.xwpf.model.XWPFHeaderFooterPolicy;
 import org.apache.poi.xwpf.usermodel.*;
 import org.dozer.Mapper;
@@ -19,13 +18,13 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
 import java.math.BigInteger;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
 
 /**
  * Created by Administrator on 2019/3/31 0031.
@@ -130,6 +129,13 @@ public class OrderComponent {
         return true;
     }
 
+    public Order getSingleOrderById(String orderId) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("id").is(orderId));
+        Order order = mongoTemplate.findOne(query, Order.class);
+        return order;
+    }
+
     public Order orderDelivery(String orderId, String logistics, String logisticsNumber) {
         Query query = new Query();
         query.addCriteria(Criteria.where("id").is(orderId));
@@ -152,9 +158,21 @@ public class OrderComponent {
         return newOrder;
     }
 
+    public Order changeOrderStatus(String orderId) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("id").is(orderId));
+        query.addCriteria(Criteria.where("status").is(0));
+        Update update = new Update();
+        update.set("status", 1);
+        FindAndModifyOptions options = new FindAndModifyOptions();
+        options.upsert(false);
+        options.returnNew(true);
+        Order newOrder = mongoTemplate.findAndModify(query, update, options, Order.class);
 
+        return newOrder;
+    }
 
-    private XWPFDocument createDoc(Order order, UserInfo user){
+    public XWPFDocument createDoc(Order order, UserInfo user){
         //Blank Document
         XWPFDocument document= new XWPFDocument();
 
@@ -206,23 +224,44 @@ public class OrderComponent {
 
         //表格第一行
         XWPFTableRow infoTableRowOne = infoTable.getRow(0);
+        infoTableRowOne.createCell();
         infoTableRowOne.getCell(0).setText("收货人");
-        infoTableRowOne.getCell(1).setText(order.getClientName());
-        infoTableRowOne.getCell(2).setText("电话");
-        infoTableRowOne.getCell(3).setText(order.getClientPhone());
+        if(StringUtils.isEmpty(order.getClientName())) {
+            infoTableRowOne.addNewTableCell().setText("");
+        }else{
+            infoTableRowOne.addNewTableCell().setText(order.getClientName());
+        }
 
+        infoTableRowOne.addNewTableCell().setText("电话");
+        if(StringUtils.isEmpty(order.getClientPhone())) {
+            infoTableRowOne.addNewTableCell().setText("");
+        }else{
+            infoTableRowOne.addNewTableCell().setText(order.getClientPhone());
+        }
 
         //表格第二行
         XWPFTableRow infoTableRowTwo = infoTable.createRow();
         infoTableRowTwo.getCell(0).setText("收件人地址");
-        infoTableRowTwo.getCell(1).setText(order.getAddress());
+        if(StringUtils.isEmpty(order.getAddress())) {
+            infoTableRowTwo.getCell(1).setText("");
+        }else{
+            infoTableRowTwo.getCell(1).setText(order.getAddress());
+        }
 
         //表格第三行
         XWPFTableRow infoTableRowThree = infoTable.createRow();
         infoTableRowThree.getCell(0).setText("发货物流");
-        infoTableRowThree.getCell(1).setText(order.getCompanyName());
+        if(StringUtils.isEmpty(order.getCompanyName())) {
+            infoTableRowThree.getCell(1).setText("");
+        }else{
+            infoTableRowThree.getCell(1).setText(order.getCompanyName());
+        }
         infoTableRowThree.getCell(2).setText("单号");
-        infoTableRowThree.getCell(3).setText(order.getLogisticsNumber());
+        if(StringUtils.isEmpty(order.getLogisticsNumber())) {
+            infoTableRowThree.getCell(3).setText("");
+        }else{
+            infoTableRowThree.getCell(3).setText(order.getLogisticsNumber());
+        }
 
         String goodsName = "";
         for(OrderGoods orderGoods : order.getOrderGoodss()) {
@@ -239,7 +278,11 @@ public class OrderComponent {
         //表格第五行
         XWPFTableRow infoTableRowFive = infoTable.createRow();
         infoTableRowFive.getCell(0).setText("其他备注");
-        infoTableRowFive.getCell(1).setText(order.getRemark());
+        if(StringUtils.isEmpty(order.getRemark())) {
+            infoTableRowFive.getCell(1).setText("");
+        }else{
+            infoTableRowFive.getCell(1).setText(order.getRemark());
+        }
 
         //两个表格之间加个换行
         XWPFParagraph paragraph = document.createParagraph();

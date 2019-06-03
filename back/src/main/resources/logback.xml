@@ -3,7 +3,7 @@
     <!-- 日志记录,会在相对路径下生产一个info 和 error 日志 -->
     <!-- info error 文件来源于 logger.info 和 logger.error 的输出 -->
     <!--定义日志文件的存储地址 勿在 LogBack 的配置中使用相对路径 -->
-    <property name="LOG_HOME" value="C:\\logs"/>
+    <property name="LOG_HOME" value="/programs/logs"/>
 
     <!-- 彩色日志 -->
     <!-- 彩色日志依赖的渲染类 -->

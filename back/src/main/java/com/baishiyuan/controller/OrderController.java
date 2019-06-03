@@ -4,12 +4,14 @@ import com.baishiyuan.DTO.OrderQueryDTO;
 import com.baishiyuan.component.OrderComponent;
 import com.baishiyuan.component.ShoppingCartComponent;
 import com.baishiyuan.component.UserAccountComponent;
+import com.baishiyuan.component.UserInfoComponent;
 import com.baishiyuan.domain.*;
 import com.baishiyuan.exception.MessageException;
 import com.baishiyuan.utils.AuthorityUtils;
 import com.baishiyuan.utils.Page;
 import com.baishiyuan.utils.StringConst;
 import com.baishiyuan.utils.UserSessionFunCallUtil;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.dozer.Mapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +28,8 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -49,6 +53,9 @@ public class OrderController {
 
     @Resource
     private OrderComponent orderComponent;
+
+    @Resource
+    private UserInfoComponent userInfoComponent;
 
     @Autowired
     protected Mapper dozerMapper;
@@ -185,6 +192,47 @@ public class OrderController {
 
         orderComponent.updatePrintNumber(orderId);
         return new WebResult(StringConst.ERRCODE_SUCCESS, "打印次数更新", 1);
+    }
+
+    @RequestMapping(value = "/orderExort/{orderId}", method = {RequestMethod.GET})
+    public void orderExort(@PathVariable String orderId, HttpServletRequest request, HttpServletResponse response) {
+        SessionInfo sessionInfo = testCheckOrderAuth(request);
+
+        int userId = sessionInfo.getUserId();
+        UserInfo userInfo = userInfoComponent.getUserInfoByUserId(userId);
+        if(userInfo == null) {
+            throw new MessageException(StringConst.ERRCODE_X, "没有此用户");
+        }
+
+        Order order = orderComponent.getSingleOrderById(orderId);
+        if(order == null) {
+            throw new MessageException(StringConst.ERRCODE_X, "没有此订单");
+        }
+
+        XWPFDocument document = orderComponent.createDoc(order, userInfo);
+
+        //给当前的订单改变状态，从0变成1
+        orderComponent.changeOrderStatus(orderId);
+
+        String fileName = "order_" + orderId + ".doc";
+        try {
+            byte[] bytes = fileName.getBytes("gb2312");
+            fileName = new String(bytes, "ISO8859-1");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        try
+        {
+            response.setContentType("application/msexcel;charset=utf-8");
+            response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+            document.write(response.getOutputStream());
+            response.getOutputStream().flush();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
 
