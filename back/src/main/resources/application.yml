@@ -1,0 +1,25 @@
+server:
+  port: 8070
+  tomcat:
+    uri-encoding: UTF-8
+  servlet:
+    context-path: /
+
+user:
+  admin:
+    name: hello
+    role: admin
+
+#数据库设置
+spring:
+  data:
+    mongodb:
+      host: 103.50.253.210
+      port: 28331
+      database: trade1
+
+logging:
+        file:
+          max-size: 10MB
+
+
