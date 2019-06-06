@@ -7,10 +7,9 @@ import com.baishiyuan.component.UserAccountComponent;
 import com.baishiyuan.component.UserInfoComponent;
 import com.baishiyuan.domain.*;
 import com.baishiyuan.exception.MessageException;
-import com.baishiyuan.utils.AuthorityUtils;
-import com.baishiyuan.utils.Page;
-import com.baishiyuan.utils.StringConst;
-import com.baishiyuan.utils.UserSessionFunCallUtil;
+import com.baishiyuan.utils.*;
+import freemarker.template.Configuration;
+import freemarker.template.Template;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.dozer.Mapper;
 import org.slf4j.Logger;
@@ -29,7 +28,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -209,12 +208,12 @@ public class OrderController {
             throw new MessageException(StringConst.ERRCODE_X, "没有此订单");
         }
 
-        XWPFDocument document = orderComponent.createDoc(order, userInfo);
+        Map<String, Object> dataMap = orderComponent.createDoc(order, userInfo);
 
         //给当前的订单改变状态，从0变成1
         orderComponent.changeOrderStatus(orderId);
 
-        String fileName = "order_" + orderId + ".doc";
+        String fileName = "order_" + orderId + ".xlsx";
         try {
             byte[] bytes = fileName.getBytes("gb2312");
             fileName = new String(bytes, "ISO8859-1");
@@ -226,8 +225,28 @@ public class OrderController {
         {
             response.setContentType("application/msexcel;charset=utf-8");
             response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
-            document.write(response.getOutputStream());
+
+            //创建配置实例
+            Configuration configuration = new Configuration();
+
+            //设置编码
+            configuration.setDefaultEncoding("UTF-8");
+
+            //ftl模板文件
+            configuration.setClassForTemplateLoading(WordUtil.class,"/");
+
+            //获取模板
+            Template template = configuration.getTemplate("./example.ftl");
+
+            //将模板和数据模型合并生成文件
+            Writer out = new BufferedWriter(new OutputStreamWriter(response.getOutputStream(),"utf-8"));
+            //生成文件
+            template.process(dataMap, out);
+
             response.getOutputStream().flush();
+            //关闭流
+            out.flush();
+            out.close();
         }
         catch (Exception e)
         {

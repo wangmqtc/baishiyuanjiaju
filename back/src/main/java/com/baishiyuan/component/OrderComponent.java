@@ -19,12 +19,9 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-
 import javax.annotation.Resource;
 import java.math.BigInteger;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by Administrator on 2019/3/31 0031.
@@ -172,7 +169,62 @@ public class OrderComponent {
         return newOrder;
     }
 
-    public XWPFDocument createDoc(Order order, UserInfo user){
+    public Map<String, Object> createDoc(Order order, UserInfo user){
+        Map<String, Object> dataMap = new HashMap<>();
+        if(StringUtils.isEmpty(order.getClientName())) {
+            dataMap.put("nickName", "");
+        }else{
+            dataMap.put("nickName", user.getNickName());
+        }
+
+        dataMap.put("orderserializable", order.getOrderserializable());
+        if(StringUtils.isEmpty(order.getClientName())) {
+            dataMap.put("clientName", "");
+        }else{
+            dataMap.put("clientName", order.getClientName());
+        }
+
+        if(StringUtils.isEmpty(order.getClientPhone())) {
+            dataMap.put("clientPhone", "");
+        }else{
+            dataMap.put("clientPhone", order.getClientPhone());
+        }
+
+        if(StringUtils.isEmpty(order.getAddress())) {
+            dataMap.put("address", "");
+        }else{
+            dataMap.put("address", order.getAddress());
+        }
+
+        if(StringUtils.isEmpty(order.getCompanyName())) {
+            dataMap.put("companyName", "");
+        }else{
+            dataMap.put("companyName", order.getCompanyName());
+        }
+
+        if(StringUtils.isEmpty(order.getLogisticsNumber())) {
+            dataMap.put("logisticsNumber", "");
+        }else{
+            dataMap.put("logisticsNumber", order.getLogisticsNumber());
+        }
+
+        String goodsName = "";
+        for(OrderGoods orderGoods : order.getOrderGoodss()) {
+            goodsName = goodsName.concat(orderGoods.getModel()).concat("-").concat(orderGoods.getColor()).concat("-").concat(orderGoods.getMaterial()).
+                    concat(" * ").concat("" + orderGoods.getNumber() + ",");
+        }
+        dataMap.put("goodsName", goodsName);
+
+        if(StringUtils.isEmpty(order.getRemark())) {
+            dataMap.put("remark", "");
+        }else{
+            dataMap.put("remark", order.getRemark());
+        }
+
+        return dataMap;
+    }
+
+    public XWPFDocument createDoc1(Order order, UserInfo user){
         //Blank Document
         XWPFDocument document= new XWPFDocument();
 
