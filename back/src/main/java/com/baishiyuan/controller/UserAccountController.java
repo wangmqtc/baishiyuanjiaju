@@ -16,7 +16,6 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -27,7 +26,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 
 @Controller
-@RequestMapping("/intf/{channel}/userAccount")
+@RequestMapping("/userAccount")
 public class UserAccountController extends BaseController {
 
     private static final Logger logger = Logger.getLogger(UserAccountController.class);
@@ -46,8 +45,7 @@ public class UserAccountController extends BaseController {
      */
     @ResponseBody
     @RequestMapping("/queryUserAccountByPage")
-    public WebResult queryUserAccountByPage(@RequestParam int pageNo, @RequestParam int pageSize, @PathVariable String channel,
-                                            HttpServletRequest request, HttpServletResponse response) {
+    public WebResult queryUserAccountByPage(@RequestParam int pageNo, @RequestParam int pageSize, HttpServletRequest request, HttpServletResponse response) {
 
         SessionInfo sessionInfo = UserSessionFunCallUtil.getCurrentSession(request);
         if (sessionInfo == null) {
@@ -107,7 +105,7 @@ public class UserAccountController extends BaseController {
      */
     @ResponseBody
     @RequestMapping("/addUserAccount")
-    public WebResult addUserAccount(@RequestParam int userId, @RequestParam int type, @RequestParam double money, String reason, String eventId, @PathVariable String channel,
+    public WebResult addUserAccount(@RequestParam int userId, @RequestParam int type, @RequestParam double money, @RequestParam String reason, String eventId,
                                     HttpServletRequest request, HttpServletResponse response) {
         SessionInfo sessionInfo = UserSessionFunCallUtil.getCurrentSession(request);
         if (sessionInfo == null) {
@@ -124,7 +122,7 @@ public class UserAccountController extends BaseController {
         }
 
         if(StringUtils.isEmpty(reason)){
-            reason = "默认-充值";
+            throw new MessageException(StringConst.ERRCODE_X, "没有填写原因备注");
         }
 
         int changeMoney = (int)(money*100);
@@ -135,7 +133,7 @@ public class UserAccountController extends BaseController {
 
     @ResponseBody
     @RequestMapping("/scanUndefine")
-    public WebResult scanUndefine(@PathVariable String channel, HttpServletRequest request, HttpServletResponse response) {
+    public WebResult scanUndefine(HttpServletRequest request, HttpServletResponse response) {
         SessionInfo sessionInfo = UserSessionFunCallUtil.getCurrentSession(request);
         if (sessionInfo == null) {
             throw new MessageException(StringConst.ERRCODE_MUSTLOGIN, "你没有登录！");
@@ -183,7 +181,7 @@ public class UserAccountController extends BaseController {
      */
     @ResponseBody
     @RequestMapping("/queryUserSelfAccountByPage")
-    public WebResult queryUserSelfAccountByPage(@RequestParam int pageNo, @RequestParam int pageSize, @PathVariable String channel,
+    public WebResult queryUserSelfAccountByPage(@RequestParam int pageNo, @RequestParam int pageSize,
                                                 HttpServletRequest request, HttpServletResponse response) {
 
         SessionInfo sessionInfo = UserSessionFunCallUtil.getCurrentSession(request);
@@ -251,7 +249,7 @@ public class UserAccountController extends BaseController {
      */
     @ResponseBody
     @RequestMapping("/queryAllMoney")
-    public WebResult queryAllMoney(@RequestParam int operation, @RequestParam int pageNo, @RequestParam int pageSize, @PathVariable String channel,
+    public WebResult queryAllMoney(@RequestParam int operation, @RequestParam int pageNo, @RequestParam int pageSize,
                                    HttpServletRequest request, HttpServletResponse response) {
 
         SessionInfo sessionInfo = UserSessionFunCallUtil.getCurrentSession(request);
@@ -323,7 +321,7 @@ public class UserAccountController extends BaseController {
      */
     @ResponseBody
     @RequestMapping("/getFlowsByMonths")
-    public WebResult getFlowsByMonths(@RequestParam int pageNo, @RequestParam int pageSize, @PathVariable String channel,
+    public WebResult getFlowsByMonths(@RequestParam int pageNo, @RequestParam int pageSize,
                                       HttpServletRequest request, HttpServletResponse response) {
 
         SessionInfo sessionInfo = UserSessionFunCallUtil.getCurrentSession(request);
@@ -349,7 +347,7 @@ public class UserAccountController extends BaseController {
      */
     @ResponseBody
     @RequestMapping("/getFlowsByYears")
-    public WebResult getFlowsByYears(@RequestParam int pageNo, @RequestParam int pageSize, @PathVariable String channel,
+    public WebResult getFlowsByYears(@RequestParam int pageNo, @RequestParam int pageSize,
                                      HttpServletRequest request, HttpServletResponse response) {
 
         SessionInfo sessionInfo = UserSessionFunCallUtil.getCurrentSession(request);
@@ -375,7 +373,7 @@ public class UserAccountController extends BaseController {
      */
     @ResponseBody
     @RequestMapping("/substractMoney")
-    public WebResult substractMoney(@RequestParam int userId, @RequestParam double money, String reason, @PathVariable String channel,
+    public WebResult substractMoney(@RequestParam int userId, @RequestParam double money, @RequestParam String reason,
                                     HttpServletRequest request, HttpServletResponse response) {
         SessionInfo sessionInfo = UserSessionFunCallUtil.getCurrentSession(request);
         if (sessionInfo == null) {
@@ -392,7 +390,7 @@ public class UserAccountController extends BaseController {
         }
 
         if(StringUtils.isEmpty(reason)){
-            reason = "超级管理员扣钱";
+            throw new MessageException(StringConst.ERRCODE_X, "没有填写原因备注");
         }
 
         int changeMoney = (int)(money*100);

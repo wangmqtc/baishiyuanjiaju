@@ -115,6 +115,14 @@ public class OrderComponent {
         return result;
     }
 
+    public void upadateFlowRemark(String id, String reason) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("id").is(id));
+        Update update = new Update();
+        update.set("reason", reason);
+        mongoTemplate.findAndModify(query, update, UserAccountFlow.class);
+    }
+
     public boolean updatePrintNumber(String orderId) {
         Query query = new Query();
         query.addCriteria(Criteria.where("id").is(orderId));

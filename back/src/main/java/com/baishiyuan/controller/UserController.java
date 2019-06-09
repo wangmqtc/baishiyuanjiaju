@@ -175,6 +175,11 @@ public class UserController extends BaseController{
             result.put("type", userInfo.getType());
             result.put("userId", userInfo.getUserId());
             result.put("authority", userInfo.getAuthority());
+
+            boolean isAccountExists = userAccountComponent.isExists(userInfo.getUserId());
+            if(!isAccountExists){
+                userAccountComponent.createPersonAccount(userInfo.getUserId(), userInfo.getUserId());
+            }
             return new WebResult(StringConst.ERRCODE_SUCCESS, "登陆成功", result);
         }
 

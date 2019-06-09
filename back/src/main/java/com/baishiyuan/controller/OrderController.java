@@ -1,5 +1,6 @@
 package com.baishiyuan.controller;
 
+import com.alibaba.fastjson.JSONObject;
 import com.baishiyuan.DTO.OrderQueryDTO;
 import com.baishiyuan.component.OrderComponent;
 import com.baishiyuan.component.ShoppingCartComponent;
@@ -10,7 +11,6 @@ import com.baishiyuan.exception.MessageException;
 import com.baishiyuan.utils.*;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.dozer.Mapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +28,10 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -134,8 +137,14 @@ public class OrderController {
             throw new MessageException(StringConst.ERRCODE_X, "您的余额不够！");
         }
 
-        orderComponent.reduceMoney(totalPrice, sessionInfo.getUserId());
+       JSONObject jsonObject = orderComponent.reduceMoney(totalPrice, sessionInfo.getUserId());
         mongoTemplate.insert(order);
+
+        String userFlowId = jsonObject.getString("id");
+        if(!StringUtils.isEmpty(userFlowId)) {
+            orderComponent.upadateFlowRemark(userFlowId, "购买商品,订单号为:" + order.getId());
+        }
+
 
         //清除购物车
         shoppingCartComponent.deleteGoodsInShoppingCartByUserId(sessionInfo.getUserId(), shoppingCartIds);
