@@ -134,6 +134,7 @@ public class GoodsComponent {
 
         jsonObject.put("model", goodsModel.getModel());
         jsonObject.put("description", goodsModel.getDescription());
+        jsonObject.put("publishName", goodsModel.getPublishName());
 
         query = new Query();
         query.addCriteria(Criteria.where("modelId").is(modelId));

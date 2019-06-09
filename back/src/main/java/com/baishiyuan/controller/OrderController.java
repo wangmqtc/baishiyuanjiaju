@@ -202,6 +202,25 @@ public class OrderController {
         return new WebResult(StringConst.ERRCODE_SUCCESS, "打印次数更新", 1);
     }
 
+    @RequestMapping(value = "/{orderId}", method = {RequestMethod.GET})
+    public WebResult querySingleOrder(@PathVariable String orderId, HttpServletRequest request) {
+        SessionInfo sessionInfo = testCheckOrderAuth(request);
+
+        Order order = orderComponent.queryOrderById(orderId);
+
+        String buyGoods = "";
+        List<OrderGoods> orderGoodss = order.getOrderGoodss();
+        for(OrderGoods orderGoods : orderGoodss) {
+            buyGoods += orderGoods.getModel() + "_" + orderGoods.getMaterial() + "_" + orderGoods.getColor() + " * " + orderGoods.getNumber() + ",";
+        }
+        if(!StringUtils.isEmpty(buyGoods)) {
+            buyGoods = buyGoods.substring(0, buyGoods.length() - 1);
+        }
+        order.setBuyGoods(buyGoods);
+
+        return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", order);
+    }
+
     @RequestMapping(value = "/orderExort/{orderId}", method = {RequestMethod.GET})
     public void orderExort(@PathVariable String orderId, HttpServletRequest request, HttpServletResponse response) {
         SessionInfo sessionInfo = testCheckOrderAuth(request);
@@ -253,6 +272,7 @@ public class OrderController {
             template.process(dataMap, out);
 
             response.getOutputStream().flush();
+            response.getOutputStream().close();
             //关闭流
             out.flush();
             out.close();

@@ -18,6 +18,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import javax.annotation.Resource;
 import java.math.BigInteger;
@@ -40,6 +41,15 @@ public class OrderComponent {
         Order order = mongoTemplate.findOne(query, Order.class);
         if(order == null) {
             throw new MessageException(StringConst.ERRCODE_X, "没有找到相应的订单");
+        }
+        if(order.getUserId() != null) {
+            Query query1 = new Query();
+            query1.addCriteria(Criteria.where("userId").is(order.getUserId()));
+            query1.addCriteria(Criteria.where("isDeleted").is(0));
+            UserInfo user = mongoTemplate.findOne(query1, UserInfo.class);
+            if(user != null) {
+                order.setNickName(user.getNickName());
+            }
         }
         return order;
     }
@@ -75,7 +85,28 @@ public class OrderComponent {
         query.skip((pageNo-1) * pageSize);
         query.limit(pageSize);
 
-        page.setList(mongoTemplate.find(query, Order.class));
+        List<Order> orders = mongoTemplate.find(query, Order.class);
+
+        List<Integer> userIds = new ArrayList<>();
+        Map<Integer, String> userIdToNickName = new HashMap<>();
+        if(!CollectionUtils.isEmpty(orders)) {
+            for(Order order : orders) {
+                userIds.add(order.getUserId());
+            }
+            Query query1 = new Query();
+            query1.addCriteria(Criteria.where("userId").in(userIds));
+            query1.addCriteria(Criteria.where("isDeleted").is(0));
+            List<UserInfo> userInfos = mongoTemplate.find(query1, UserInfo.class);
+            if(!CollectionUtils.isEmpty(userInfos)) {
+                for(UserInfo user : userInfos) {
+                    userIdToNickName.put(user.getUserId(), user.getNickName());
+                }
+            }
+            for(Order order : orders) {
+                order.setNickName(userIdToNickName.get(order.getUserId()));
+            }
+        }
+        page.setList(orders);
         return page;
     }
 

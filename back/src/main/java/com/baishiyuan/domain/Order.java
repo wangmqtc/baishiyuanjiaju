@@ -93,12 +93,18 @@ public class Order implements Serializable{
     /** 打印次数*/
     private Integer printNumber;
 
+    /** 用户购买的货物*/
+    private String buyGoods;
+
     /** 订单备注*/
     @Mapping("remark")
     private String remark;
 
     /** 发送时间*/
     private Date sendTime;
+
+    //返回的时候需要用到
+    private String nickName;
 
     public String getId() {
         return id;
@@ -314,6 +320,22 @@ public class Order implements Serializable{
 
     public void setPrintNumber(Integer printNumber) {
         this.printNumber = printNumber;
+    }
+
+    public String getNickName() {
+        return nickName;
+    }
+
+    public void setNickName(String nickName) {
+        this.nickName = nickName;
+    }
+
+    public String getBuyGoods() {
+        return buyGoods;
+    }
+
+    public void setBuyGoods(String buyGoods) {
+        this.buyGoods = buyGoods;
     }
 }
 
