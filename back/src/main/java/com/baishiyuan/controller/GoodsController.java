@@ -81,7 +81,7 @@ public class GoodsController {
         goodsModel.setGoodsIdRandom(goodss.get(0).getId());
         mongoTemplate.save(goodsModel);
 
-        return new WebResult(StringConst.ERRCODE_SUCCESS, "插入成功", goodss);
+        return new WebResult(StringConst.ERRCODE_SUCCESS, "发布成功", goodss);
     }
 
     @RequestMapping(value = "/{modelId}", method = RequestMethod.PUT, produces = "application/json")

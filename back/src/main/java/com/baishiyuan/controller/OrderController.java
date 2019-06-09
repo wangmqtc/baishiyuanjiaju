@@ -178,7 +178,7 @@ public class OrderController {
         return new WebResult(StringConst.ERRCODE_SUCCESS, "修改订单成功", newOrder);
     }
 
-    @RequestMapping(value = "/orders", method = {RequestMethod.GET})
+    @RequestMapping(value = "/orders", method = {RequestMethod.POST})
     public WebResult queryOrders(@RequestBody @Validated OrderQueryDTO orderQueryDTO, HttpServletRequest request) {
         SessionInfo sessionInfo = testCheckOrderAuth(request);
 
