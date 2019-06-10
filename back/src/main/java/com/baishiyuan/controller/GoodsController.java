@@ -159,11 +159,14 @@ public class GoodsController {
 
         List<GoodsVO> goodsVOS = goodsComponent.queryGoodsByModel(modelid);
         JSONObject result = new JSONObject();
-        List<String> colors = new ArrayList<>();
+        List<JSONObject> colors = new ArrayList<JSONObject>();
         List<String> materials = new ArrayList<>();
 
         for(GoodsVO goodsVO : goodsVOS) {
-            colors.add(goodsVO.getColor());
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("color", goodsVO.getColor());
+            jsonObject.put("image", goodsVO.getImage());
+            colors.add(jsonObject);
             materials.add(goodsVO.getMaterial());
         }
         result.put("goodss", goodsVOS);

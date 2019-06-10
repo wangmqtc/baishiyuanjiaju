@@ -9,8 +9,10 @@ import com.baishiyuan.component.UserInfoComponent;
 import com.baishiyuan.domain.*;
 import com.baishiyuan.exception.MessageException;
 import com.baishiyuan.utils.*;
+import com.itextpdf.text.pdf.BaseFont;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
+import freemarker.template.TemplateExceptionHandler;
 import org.dozer.Mapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,18 +22,18 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.http.HttpHeaders;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.xhtmlrenderer.pdf.ITextFontResolver;
+import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.BufferedWriter;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
-import java.io.Writer;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -283,6 +285,74 @@ public class OrderController {
         catch (Exception e)
         {
             e.printStackTrace();
+        }
+    }
+
+    @RequestMapping(value = "/orderExortPDF/{orderId}", method = {RequestMethod.GET})
+    public void orderExortPDF(@PathVariable String orderId, HttpServletRequest request, HttpServletResponse response) {
+        SessionInfo sessionInfo = testCheckOrderAuth(request);
+
+        HttpHeaders headers = new HttpHeaders();
+
+        int userId = sessionInfo.getUserId();
+        UserInfo userInfo = userInfoComponent.getUserInfoByUserId(userId);
+        if(userInfo == null) {
+            throw new MessageException(StringConst.ERRCODE_X, "没有此用户");
+        }
+
+        Order order = orderComponent.getSingleOrderById(orderId);
+        if(order == null) {
+            throw new MessageException(StringConst.ERRCODE_X, "没有此订单");
+        }
+
+        Map<String, Object> dataMap = orderComponent.createDoc(order, userInfo);
+
+        String fileName = "order_" + orderId + ".pdf";
+
+        try {
+            byte[] bytes = fileName.getBytes("gb2312");
+            fileName = new String(bytes, "ISO8859-1");
+            response.setContentType("application/force-download");
+            response.setContentType("application/download");
+            response.setContentType("application/octet-stream");
+
+            response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+
+            //创建配置实例
+            Configuration configuration = new Configuration();
+            configuration.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
+            //设置编码
+            configuration.setDefaultEncoding("UTF-8");
+            //ftl模板文件
+            configuration.setClassForTemplateLoading(WordUtil.class,"/");
+            //获取模板
+            Template template = configuration.getTemplate("./222.ftl");
+            //将模板和数据模型合并生成文件
+            StringWriter str = new StringWriter();
+            //生成文件
+            template.process(dataMap, str);
+            str.flush();
+            String htmlTmpStr = str.toString();
+            //关闭流
+            str.flush();
+            str.close();
+
+            /** -------生成PDF------- **/
+            ITextRenderer renderer = new ITextRenderer();
+            renderer.setDocumentFromString(htmlTmpStr);
+            // 解决中文支持问题
+            ITextFontResolver fontResolver = renderer.getFontResolver();
+            String simusun = null;
+            if (simusun != null) {
+                fontResolver.addFont(simusun, BaseFont.IDENTITY_H, BaseFont.NOT_EMBEDDED);
+                renderer.getSharedContext().setFontResolver(fontResolver);
+            }
+            renderer.layout();
+            renderer.createPDF(response.getOutputStream());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
         }
     }
 
