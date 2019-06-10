@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -157,7 +158,19 @@ public class GoodsController {
         testCheckGoodsAuth(request);
 
         List<GoodsVO> goodsVOS = goodsComponent.queryGoodsByModel(modelid);
-        return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", goodsVOS);
+        JSONObject result = new JSONObject();
+        List<String> colors = new ArrayList<>();
+        List<String> materials = new ArrayList<>();
+
+        for(GoodsVO goodsVO : goodsVOS) {
+            colors.add(goodsVO.getColor());
+            materials.add(goodsVO.getMaterial());
+        }
+        result.put("goodss", goodsVOS);
+        result.put("colors", colors);
+        result.put("materials", materials);
+
+        return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", result);
     }
 
     @RequestMapping(value = "/homePage", method = RequestMethod.GET)
