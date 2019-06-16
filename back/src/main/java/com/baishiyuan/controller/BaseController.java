@@ -30,16 +30,17 @@ public class BaseController {
                     //logger.info("verify code from request" + verifyCode);
                     //logger.info("verify code from session" + verifyCodeInSession);
                     if (! verifyCodeInSession.equalsIgnoreCase(verifyCode)) {
-                        HttpSession session = request.getSession(true);
+                        HttpSession session = request.getSession(false);
                         session.setAttribute("verifyCode", null);
                         return Utils.putReturnMap(retMap, StringConst.ERRCODE_X, "验证码不正确！");
                     } else {
                         //将验证码置为失效
-                        HttpSession session = request.getSession(true);
+                        HttpSession session = request.getSession(false);
                         session.setAttribute("verifyCode", null);
                         return null;
                     }
                 } else {
+                    System.out.println("session = " + request.getSession().getId());
                     return Utils.putReturnMap(retMap, StringConst.ERRCODE_X, "请重新输入验证码！");
                 }
             }

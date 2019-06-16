@@ -42,7 +42,7 @@ public class ShoppingCartController {
 
     @RequestMapping(value = "", method = RequestMethod.POST, produces = "application/json")
     public WebResult createShoppingCart(@RequestBody @Validated ShoppingCartCreateDTO goods, HttpServletRequest request) {
-        SessionInfo sessionInfo = testCheckShoppingCartAuth(request);
+        SessionInfo sessionInfo = getSession(request);
 
         Set<String> goodsIds = new HashSet<>();
         Map<String, ShoppingCartDTO> map = new HashMap<>();
@@ -99,7 +99,7 @@ public class ShoppingCartController {
 
     @RequestMapping(value = "", method = RequestMethod.DELETE, produces = "application/json")
     public WebResult deleteShoppingCart(@RequestParam String cartIds, HttpServletRequest request) {
-        SessionInfo sessionInfo = testCheckShoppingCartAuth(request);
+        SessionInfo sessionInfo = getSession(request);
 
         String[] cartIdsStr = cartIds.split(",");
         List<String> cartIdList = new ArrayList<>();
@@ -119,7 +119,7 @@ public class ShoppingCartController {
 
     @RequestMapping(value = "", method = RequestMethod.GET)
     public WebResult getShoppingCarts(HttpServletRequest request) {
-        SessionInfo sessionInfo = testCheckShoppingCartAuth(request);
+        SessionInfo sessionInfo = getSession(request);
 
         List<ShoppingCartVO> shoppingCartVOS = shoppingCartComponent.queryShoppingCartVOs(sessionInfo.getUserId());
         return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", shoppingCartVOS);
@@ -127,7 +127,7 @@ public class ShoppingCartController {
 
     @RequestMapping(value = "/queryNumbers", method = RequestMethod.GET)
     public WebResult queryNumbers(HttpServletRequest request) {
-        SessionInfo sessionInfo = testCheckShoppingCartAuth(request);
+        SessionInfo sessionInfo = getSession(request);
 
         long number = shoppingCartComponent.queryNumbers(sessionInfo.getUserId());
         return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", number);
@@ -150,6 +150,15 @@ public class ShoppingCartController {
     private SessionInfo testCheckShoppingCartAuth(HttpServletRequest request) {
         SessionInfo sessionInfo = new SessionInfo();
         sessionInfo.setUserId(1);
+
+        return sessionInfo;
+    }
+
+    private SessionInfo getSession(HttpServletRequest request) {
+        SessionInfo sessionInfo = UserSessionFunCallUtil.getCurrentSession(request);
+        if (sessionInfo == null) {
+            throw new MessageException(StringConst.ERRCODE_MUSTLOGIN, "你没有登录！");
+        }
 
         return sessionInfo;
     }

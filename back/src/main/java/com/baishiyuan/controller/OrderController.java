@@ -72,7 +72,7 @@ public class OrderController {
 
     @RequestMapping(value = "", method = {RequestMethod.POST})
     public WebResult order(@RequestParam String address, @RequestParam String phone, @RequestParam String name, String remark, HttpServletRequest request) {
-        SessionInfo sessionInfo = testGetSession(request);
+        SessionInfo sessionInfo = getSession(request);
 
         List<ShoppingCart> shoppingCarts = shoppingCartComponent.queryShoppingCarts(sessionInfo.getUserId());
         if(CollectionUtils.isEmpty(shoppingCarts)) {
@@ -163,11 +163,10 @@ public class OrderController {
     @RequestMapping(value = "/{orderId}", method = {RequestMethod.PUT})
     public WebResult updateOrder(@PathVariable String orderId, @RequestParam String logistics, @RequestParam String logisticsNumber, String remark,
                                   HttpServletRequest request) {
-        SessionInfo sessionInfo = testCheckOrderAuth(request);
+        SessionInfo sessionInfo = checkOrderAuth(request);
 
         Query query = new Query();
         query.addCriteria(Criteria.where("id").is(orderId));
-        query.addCriteria(Criteria.where("status").is(1));
         Update update = new Update();
         update.set("companyName", logistics);
         update.set("logisticsNumber", logisticsNumber);
@@ -188,7 +187,7 @@ public class OrderController {
 
     @RequestMapping(value = "/orders", method = {RequestMethod.POST})
     public WebResult queryOrders(@RequestBody @Validated OrderQueryDTO orderQueryDTO, HttpServletRequest request) {
-        SessionInfo sessionInfo = testCheckOrderAuth(request);
+        SessionInfo sessionInfo = getSession(request);
 
         Page page = orderComponent.queryOrders(orderQueryDTO.getPageNo(), orderQueryDTO.getPageSize(), orderQueryDTO.getStatus());
         return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", page);
@@ -196,7 +195,7 @@ public class OrderController {
 
     @RequestMapping(value = "/orderDelivery/{orderId}", method = {RequestMethod.PUT})
     public WebResult orderDelivery(@PathVariable String orderId, @RequestParam String logistics, @RequestParam String logisticsNumber, HttpServletRequest request) {
-        SessionInfo sessionInfo = testCheckOrderAuth(request);
+        SessionInfo sessionInfo = checkOrderAuth(request);
 
         Order newOrder = orderComponent.orderDelivery(orderId, logistics, logisticsNumber);
         return new WebResult(StringConst.ERRCODE_SUCCESS, "已更新状态", newOrder);
@@ -204,15 +203,14 @@ public class OrderController {
 
     @RequestMapping(value = "/orderPrint", method = {RequestMethod.GET})
     public WebResult orderPrint(@RequestParam String orderId, HttpServletRequest request) {
-        SessionInfo sessionInfo = testCheckOrderAuth(request);
-
+        SessionInfo sessionInfo = getSession(request);
         orderComponent.updatePrintNumber(orderId);
         return new WebResult(StringConst.ERRCODE_SUCCESS, "打印次数更新", 1);
     }
 
     @RequestMapping(value = "/{orderId}", method = {RequestMethod.GET})
     public WebResult querySingleOrder(@PathVariable String orderId, HttpServletRequest request) {
-        SessionInfo sessionInfo = testCheckOrderAuth(request);
+        SessionInfo sessionInfo = getSession(request);
 
         Order order = orderComponent.queryOrderById(orderId);
 
@@ -229,9 +227,10 @@ public class OrderController {
         return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", order);
     }
 
+    @CrossOrigin
     @RequestMapping(value = "/orderExort/{orderId}", method = {RequestMethod.GET})
     public void orderExort(@PathVariable String orderId, HttpServletRequest request, HttpServletResponse response) {
-        SessionInfo sessionInfo = testCheckOrderAuth(request);
+        SessionInfo sessionInfo = getSession(request);
 
         int userId = sessionInfo.getUserId();
         UserInfo userInfo = userInfoComponent.getUserInfoByUserId(userId);
@@ -296,7 +295,7 @@ public class OrderController {
 
     @RequestMapping(value = "/orderExortPDF1/{orderId}", method = {RequestMethod.GET})
     public void orderExortPDF1(@PathVariable String orderId, HttpServletRequest request, HttpServletResponse response) {
-        SessionInfo sessionInfo = testCheckOrderAuth(request);
+        SessionInfo sessionInfo = getSession(request);
 
         HttpHeaders headers = new HttpHeaders();
 
@@ -364,9 +363,7 @@ public class OrderController {
 
     @RequestMapping(value = "/orderExortPDF/{orderId}", method = {RequestMethod.GET})
     public void orderExortPDF(@PathVariable String orderId, HttpServletRequest request, HttpServletResponse response) {
-        SessionInfo sessionInfo = testCheckOrderAuth(request);
-
-        HttpHeaders headers = new HttpHeaders();
+        SessionInfo sessionInfo = getSession(request);
 
         int userId = sessionInfo.getUserId();
         UserInfo userInfo = userInfoComponent.getUserInfoByUserId(userId);
@@ -384,7 +381,8 @@ public class OrderController {
         String fileName = "order_" + orderId + ".pdf";
 
         // 模板路径
-        String templatePath = "/programs/order.pdf";
+//        String templatePath = "/programs/order.pdf";
+        String templatePath = "./order.pdf";
         PdfReader reader;
         ByteArrayOutputStream bos;
         PdfStamper stamper;
@@ -414,6 +412,9 @@ public class OrderController {
             copy.addPage(importPage);
             doc.close();
 
+            response.getOutputStream().flush();
+            response.getOutputStream().close();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -422,7 +423,7 @@ public class OrderController {
 
     @RequestMapping(value = "/orderExortPDF2/{orderId}", method = {RequestMethod.GET})
     public void orderExortPDF2(@PathVariable String orderId, HttpServletRequest request, HttpServletResponse response) {
-        SessionInfo sessionInfo = testCheckOrderAuth(request);
+        SessionInfo sessionInfo = checkOrderAuth(request);
 
         HttpHeaders headers = new HttpHeaders();
 
