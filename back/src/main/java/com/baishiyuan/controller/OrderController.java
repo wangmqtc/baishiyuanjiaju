@@ -252,9 +252,9 @@ public class OrderController {
         try
         {
 //            response.setContentType("application/msexcel;charset=utf-8");
-            response.setContentType("application/force-download");
+//            response.setContentType("application/force-download");
             response.setContentType("application/octet-stream");
-            response.setContentType("application/download");
+//            response.setContentType("application/download");
             response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
 
             //创建配置实例
