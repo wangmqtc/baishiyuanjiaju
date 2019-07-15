@@ -100,7 +100,7 @@ public class UserController extends BaseController{
     /**
      * <p>用户名注册</p>
      **/
-    public synchronized static boolean userRegister(UserInfo userInfo) throws Exception{
+    public synchronized boolean userRegister(UserInfo userInfo) throws Exception{
         if(!StringUtils.hasText(userInfo.getLogoId())){
             userInfo.setLogoId(null);
         }
@@ -110,7 +110,6 @@ public class UserController extends BaseController{
         userInfo.setGmtCreate(Calendar.getInstance().getTime());
 
         int userId = 1;
-        UserInfoComponent userInfoComponent = (UserInfoComponent) SpringBeanUtil.getBean("userInfoComponent");
         Integer maxUserId = userInfoComponent.getUserMaxId();
         if(maxUserId != null){
             userId = maxUserId + 1;
@@ -182,7 +181,6 @@ public class UserController extends BaseController{
             }
             return new WebResult(StringConst.ERRCODE_SUCCESS, "登陆成功", result);
         }
-
         return new WebResult(StringConst.ERRCODE_X, "手机号码未注册", 0);
     }
 

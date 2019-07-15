@@ -125,14 +125,13 @@ public class ShoppingCartController {
         return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", shoppingCartVOS);
     }
 
-    @RequestMapping(value = "/queryNumbers", method = RequestMethod.GET)
+    @RequestMapping(value = "/queryNumbers")
     public WebResult queryNumbers(HttpServletRequest request) {
-        SessionInfo sessionInfo = getSession(request);
+        SessionInfo sessionInfo = testCheckShoppingCartAuth(request);
 
         long number = shoppingCartComponent.queryNumbers(sessionInfo.getUserId());
         return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", number);
     }
-
 
     private SessionInfo checkShoppingCartAuth(HttpServletRequest request) {
         SessionInfo sessionInfo = UserSessionFunCallUtil.getCurrentSession(request);

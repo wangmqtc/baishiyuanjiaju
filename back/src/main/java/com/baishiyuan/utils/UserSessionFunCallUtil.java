@@ -21,6 +21,7 @@ public class UserSessionFunCallUtil {
         HttpSession httpSession = request.getSession(false);
 
         if(httpSession == null){
+            System.out.println("httpSession is null, request is " + request.getRequestURI());
             return null;
         }
 
