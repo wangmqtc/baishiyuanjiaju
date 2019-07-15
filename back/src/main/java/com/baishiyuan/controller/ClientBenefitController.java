@@ -45,6 +45,11 @@ public class ClientBenefitController {
         }
 
         int creator = sessionInfo.getUserId();
+
+        if(discount > 1.5 || discount < 0.7) {
+            throw new MessageException(StringConst.ERRCODE_X, "折扣设置不能大于1.5，不能小于0.7！");
+        }
+
         clientBenefitComponent.setDisCount(userId, creator, discount);
 
         return new WebResult(0, "设置折扣成功", 1);

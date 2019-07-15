@@ -12,9 +12,6 @@ public class ClientBenefitVO implements Serializable{
     /**用户ID*/
     private Integer userId;
 
-    /**是否删除*/
-    private Integer  isDeleted;
-
     /**优惠类型,0是折扣，1是加急*/
     private Integer type;
 
@@ -42,14 +39,6 @@ public class ClientBenefitVO implements Serializable{
 
     public void setUserId(Integer userId) {
         this.userId = userId;
-    }
-
-    public Integer getIsDeleted() {
-        return isDeleted;
-    }
-
-    public void setIsDeleted(Integer isDeleted) {
-        this.isDeleted = isDeleted;
     }
 
     public Integer getType() {

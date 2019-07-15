@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.baishiyuan.DTO.GoodsCreateDTO;
 import com.baishiyuan.DTO.GoodsDTO;
 import com.baishiyuan.component.GoodsComponent;
+import com.baishiyuan.component.GoodsMonthStatisticsComponent;
 import com.baishiyuan.domain.Goods;
 import com.baishiyuan.domain.GoodsModel;
 import com.baishiyuan.domain.SessionInfo;
@@ -42,6 +43,9 @@ public class GoodsController {
 
     @Resource
     private GoodsComponent goodsComponent;
+
+    @Resource
+    private GoodsMonthStatisticsComponent goodsMonthStatisticsComponent;
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -145,6 +149,7 @@ public class GoodsController {
         checkGoodsAuth(request);
 
         goodsComponent.deleteGoodsByModelId(modelid);
+        goodsMonthStatisticsComponent.deleteGoodsMonthStatistics(modelid);
         return new WebResult(StringConst.ERRCODE_SUCCESS, "删除成功", 1);
     }
 

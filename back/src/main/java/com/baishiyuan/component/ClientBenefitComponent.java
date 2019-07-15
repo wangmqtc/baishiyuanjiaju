@@ -29,7 +29,6 @@ public class ClientBenefitComponent{
     public void setDisCount(int userId, int creator, double disCount) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
-        query.addCriteria(Criteria.where("isDeleted").is(0));
         query.addCriteria(Criteria.where("type").is(0));
         ClientBenefit clientBenefit = mongoTemplate.findOne(query, ClientBenefit.class);
         if(clientBenefit == null){
@@ -54,7 +53,6 @@ public class ClientBenefitComponent{
     public void setUrgentCount(int userId, int creator, Integer urgentCount) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
-        query.addCriteria(Criteria.where("isDeleted").is(0));
         query.addCriteria(Criteria.where("type").is(1));
         ClientBenefit clientBenefit = mongoTemplate.findOne(query, ClientBenefit.class);
         if(clientBenefit == null){
@@ -79,7 +77,6 @@ public class ClientBenefitComponent{
     public void cancelBenefit(int type, int userId, int modifier) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
-        query.addCriteria(Criteria.where("isDeleted").is(0));
         query.addCriteria(Criteria.where("type").is(type));
         mongoTemplate.findAllAndRemove(query, ClientBenefit.class);
     }
@@ -113,7 +110,6 @@ public class ClientBenefitComponent{
             clientBenefitVO.setType(type);
             clientBenefitVO.setUserId(userInfo.getUserId());
             clientBenefitVO.setNickName(userInfo.getNickName());
-            clientBenefitVO.setIsDeleted(0);
             clientBenefitVO.setMbn(userInfo.getMbn());
             clientBenefitVO.setRealName(userInfo.getRealName());
             ClientBenefit clientBenefit = result.get(userInfo.getUserId());
@@ -175,6 +171,14 @@ public class ClientBenefitComponent{
             result.put(clientBenefit.getUserId(), clientBenefit);
         }
         return result;
+    }
+
+    public ClientBenefit getClientBenefitByUserId(int userId) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        query.addCriteria(Criteria.where("type").is(0));
+        ClientBenefit clientBenefit = mongoTemplate.findOne(query, ClientBenefit.class);
+        return clientBenefit;
     }
 
 }
