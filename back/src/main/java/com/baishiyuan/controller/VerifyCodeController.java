@@ -29,6 +29,7 @@ public class VerifyCodeController {
         //存入会话session
         HttpSession session = request.getSession(true);
         session.setAttribute("verifyCode", verifyCode.toLowerCase());
+        System.out.println("session=" + session.getId() + ",verifyCode=" + verifyCode);
         //生成图片
         int w = 200, h = 80;
 

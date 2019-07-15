@@ -208,8 +208,8 @@ public class OrderComponent {
         return newOrder;
     }
 
-    public Map<String, Object> createDoc(Order order, UserInfo user){
-        Map<String, Object> dataMap = new HashMap<>();
+    public Map<String, String> createDoc(Order order, UserInfo user){
+        Map<String, String> dataMap = new HashMap<>();
         if(StringUtils.isEmpty(order.getClientName())) {
             dataMap.put("nickName", "");
         }else{

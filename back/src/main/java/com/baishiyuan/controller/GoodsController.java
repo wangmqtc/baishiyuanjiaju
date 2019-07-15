@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -46,7 +47,7 @@ public class GoodsController {
 
     @RequestMapping(value = "", method = RequestMethod.POST, produces = "application/json")
     public WebResult createGoods(@RequestBody @Validated GoodsCreateDTO goodsCreateDTO, HttpServletRequest request) {
-        SessionInfo sessionInfo = testCheckGoodsAuth(request);
+        SessionInfo sessionInfo = checkGoodsAuth(request);
 
         List<GoodsDTO> goodsDTOS = goodsCreateDTO.getGoodsDTOS();
 
@@ -86,7 +87,7 @@ public class GoodsController {
 
     @RequestMapping(value = "/{modelId}", method = RequestMethod.PUT, produces = "application/json")
     public WebResult updateGoods(@RequestBody @Validated GoodsCreateDTO goodsCreateDTO, @PathVariable String modelId, HttpServletRequest request) {
-        SessionInfo sessionInfo = testCheckGoodsAuth(request);
+        SessionInfo sessionInfo = checkGoodsAuth(request);
 
         Date now = Calendar.getInstance().getTime();
 
@@ -131,14 +132,17 @@ public class GoodsController {
         mongoTemplate.insertAll(goodss);
 
         /**随机抽取一条产品id给model*/
-        goodsModel.setGoodsIdRandom(goodss.get(0).getId());
-        mongoTemplate.save(goodsModel);
+        query = new Query();
+        query.addCriteria(Criteria.where("id").is(modelId));
+        update = new Update();
+        update.set("goodsIdRandom", goodss.get(0).getId());
+        mongoTemplate.findAndModify(query, update, options, GoodsModel.class);
         return new WebResult(StringConst.ERRCODE_SUCCESS, "修改成功", goodss);
     }
 
     @RequestMapping(value = "/{modelid}", method = RequestMethod.DELETE, produces = "application/json")
     public WebResult deleteGoods(@PathVariable String modelid,  HttpServletRequest request) {
-        testCheckGoodsAuth(request);
+        checkGoodsAuth(request);
 
         goodsComponent.deleteGoodsByModelId(modelid);
         return new WebResult(StringConst.ERRCODE_SUCCESS, "删除成功", 1);
@@ -146,7 +150,7 @@ public class GoodsController {
 
     @RequestMapping(value = "/models", method = RequestMethod.GET)
     public WebResult queryGoodsModels(@RequestParam int pageNo, @RequestParam int pageSize, HttpServletRequest request) {
-        testCheckGoodsAuth(request);
+        getSession(request);
 
         Page page = goodsComponent.queryGoodsModelsByPage(pageNo, pageSize);
         return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", page);
@@ -154,15 +158,30 @@ public class GoodsController {
 
     @RequestMapping(value = "/{modelid}", method = RequestMethod.GET)
     public WebResult queryGoodsByModelId(@PathVariable String modelid,  HttpServletRequest request) {
-        testCheckGoodsAuth(request);
+        getSession(request);
 
         List<GoodsVO> goodsVOS = goodsComponent.queryGoodsByModel(modelid);
-        return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", goodsVOS);
+        JSONObject result = new JSONObject();
+        List<JSONObject> colors = new ArrayList<JSONObject>();
+        List<String> materials = new ArrayList<>();
+
+        for(GoodsVO goodsVO : goodsVOS) {
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("color", goodsVO.getColor());
+            jsonObject.put("image", goodsVO.getImage());
+            colors.add(jsonObject);
+            materials.add(goodsVO.getMaterial());
+        }
+        result.put("goodss", goodsVOS);
+        result.put("colors", colors);
+        result.put("materials", materials);
+
+        return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", result);
     }
 
     @RequestMapping(value = "/homePage", method = RequestMethod.GET)
     public WebResult homePage(@RequestParam int pageNo, @RequestParam int pageSize,  HttpServletRequest request) {
-        testCheckGoodsAuth(request);
+        getSession(request);
 
         Page page = goodsComponent.queryGoodsByPage(pageNo, pageSize);
         return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", page);
@@ -170,7 +189,7 @@ public class GoodsController {
 
     @RequestMapping(value = "/detail/{modelid}", method = RequestMethod.GET)
     public WebResult goodsDetails(@PathVariable String modelid,  HttpServletRequest request) {
-        testCheckGoodsAuth(request);
+        getSession(request);
 
         JSONObject jsonObject = goodsComponent.goodsDetailByModel(modelid);
         return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", jsonObject);
@@ -198,6 +217,15 @@ public class GoodsController {
     private SessionInfo testCheckGoodsAuth(HttpServletRequest request) {
         SessionInfo sessionInfo = new SessionInfo();
         sessionInfo.setUserId(1);
+
+        return sessionInfo;
+    }
+
+    private SessionInfo getSession(HttpServletRequest request) {
+        SessionInfo sessionInfo = UserSessionFunCallUtil.getCurrentSession(request);
+        if (sessionInfo == null) {
+            throw new MessageException(StringConst.ERRCODE_MUSTLOGIN, "你没有登录！");
+        }
 
         return sessionInfo;
     }
