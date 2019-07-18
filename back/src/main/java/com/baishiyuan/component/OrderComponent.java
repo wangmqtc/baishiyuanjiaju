@@ -3,6 +3,7 @@ package com.baishiyuan.component;
 import com.alibaba.fastjson.JSONObject;
 import com.baishiyuan.domain.*;
 import com.baishiyuan.exception.MessageException;
+import com.baishiyuan.utils.JavaBeanUtils;
 import com.baishiyuan.utils.Page;
 import com.baishiyuan.utils.StringConst;
 import com.baishiyuan.utils.Utils;
@@ -20,8 +21,11 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
+
 import javax.annotation.Resource;
 import java.math.BigInteger;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -88,6 +92,7 @@ public class OrderComponent {
         List<Order> orders = mongoTemplate.find(query, Order.class);
 
         List<Integer> userIds = new ArrayList<>();
+        List<Map<String, Object>> orderVOS = new ArrayList<>();
         Map<Integer, String> userIdToNickName = new HashMap<>();
         if(!CollectionUtils.isEmpty(orders)) {
             for(Order order : orders) {
@@ -102,11 +107,16 @@ public class OrderComponent {
                     userIdToNickName.put(user.getUserId(), user.getNickName());
                 }
             }
+
             for(Order order : orders) {
-                order.setNickName(userIdToNickName.get(order.getUserId()));
+                Map<String, Object> map = JavaBeanUtils.convertBeanToMap(order);
+                DateFormat format = new SimpleDateFormat("yyyy-MM-dd kk:mm:ss");
+                map.put("gmtCreate", format.format(order.getGmtCreate()));
+                map.put("nickName", userIdToNickName.get(order.getUserId()));
+                orderVOS.add(map);
             }
         }
-        page.setList(orders);
+        page.setList(orderVOS);
         return page;
     }
 
@@ -210,7 +220,7 @@ public class OrderComponent {
 
     public Map<String, String> createDoc(Order order, UserInfo user){
         Map<String, String> dataMap = new HashMap<>();
-        if(StringUtils.isEmpty(order.getClientName())) {
+        if(StringUtils.isEmpty(user.getNickName())) {
             dataMap.put("nickName", "");
         }else{
             dataMap.put("nickName", user.getNickName());

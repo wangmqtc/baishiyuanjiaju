@@ -47,7 +47,7 @@ import java.util.*;
  * Created by Administrator on 2019/4/21 0021.
  */
 @RestController
-@RequestMapping({"/order"})
+@RequestMapping("/order")
 public class OrderController {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -293,7 +293,6 @@ public class OrderController {
         }
     }
 
-    @RequestMapping(value = "/orderExortPDF1/{orderId}", method = {RequestMethod.GET})
     public void orderExortPDF1(@PathVariable String orderId, HttpServletRequest request, HttpServletResponse response) {
         SessionInfo sessionInfo = getSession(request);
 
@@ -363,17 +362,14 @@ public class OrderController {
 
     @RequestMapping(value = "/orderExortPDF/{orderId}", method = {RequestMethod.GET})
     public void orderExortPDF(@PathVariable String orderId, HttpServletRequest request, HttpServletResponse response) {
-        SessionInfo sessionInfo = getSession(request);
-
-        int userId = sessionInfo.getUserId();
-        UserInfo userInfo = userInfoComponent.getUserInfoByUserId(userId);
-        if(userInfo == null) {
-            throw new MessageException(StringConst.ERRCODE_X, "没有此用户");
-        }
-
         Order order = orderComponent.getSingleOrderById(orderId);
         if(order == null) {
             throw new MessageException(StringConst.ERRCODE_X, "没有此订单");
+        }
+
+        UserInfo userInfo = userInfoComponent.getUserInfoByUserId(order.getUserId());
+        if(userInfo == null) {
+            throw new MessageException(StringConst.ERRCODE_X, "没有此用户");
         }
 
         Map<String, String> dataMap = orderComponent.createDoc(order, userInfo);
@@ -421,7 +417,6 @@ public class OrderController {
 
     }
 
-    @RequestMapping(value = "/orderExortPDF2/{orderId}", method = {RequestMethod.GET})
     public void orderExortPDF2(@PathVariable String orderId, HttpServletRequest request, HttpServletResponse response) {
         SessionInfo sessionInfo = checkOrderAuth(request);
 

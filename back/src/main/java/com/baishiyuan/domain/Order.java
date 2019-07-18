@@ -25,15 +25,15 @@ public class Order implements Serializable{
     private Integer userId;
 
     /**地址*/
-    @Mapping("address")
+//    @Mapping("address")
     private String address;
 
     /**收件人电话*/
-    @Mapping("phone")
+//    @Mapping("phone")
     private String mbn;
 
     /**收件人名称*/
-    @Mapping("name")
+//    @Mapping("name")
     private String clientName;
 
     /**收件人座机*/
