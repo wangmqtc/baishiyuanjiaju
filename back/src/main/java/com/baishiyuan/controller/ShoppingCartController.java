@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 
 @RestController
@@ -126,10 +127,13 @@ public class ShoppingCartController {
     }
 
     @RequestMapping(value = "/queryNumbers")
-    public WebResult queryNumbers(HttpServletRequest request) {
-        SessionInfo sessionInfo = testCheckShoppingCartAuth(request);
+    public WebResult queryNumbers(HttpServletRequest request, HttpServletResponse response) {
+        SessionInfo sessionInfo = getSession(request);
 
         long number = shoppingCartComponent.queryNumbers(sessionInfo.getUserId());
+        // 指定允许其他域名访问
+        response.setHeader("Access-Control-Allow-Origin", "*");
+
         return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", number);
     }
 

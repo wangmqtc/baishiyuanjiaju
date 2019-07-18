@@ -1,6 +1,7 @@
 package com.baishiyuan.controller;
 
 import com.alibaba.fastjson.JSONObject;
+import com.baishiyuan.component.GoodsMonthStatisticsComponent;
 import com.baishiyuan.component.UserAccountComponent;
 import com.baishiyuan.component.UserInfoComponent;
 import com.baishiyuan.domain.*;
@@ -40,6 +41,9 @@ public class UserAccountController extends BaseController {
 
     @Resource(name="mongoTemplate")
     private MongoTemplate mongoTemplate;
+
+    @Resource
+    private GoodsMonthStatisticsComponent goodsMonthStatisticsComponent;
 
     /**
      * 分页查看用户账户
@@ -397,6 +401,31 @@ public class UserAccountController extends BaseController {
         int changeMoney = (int)(money*100);
         userAccountComponent.substractMoney(sessionInfo.getUserId(), userId, changeMoney, reason, 4, null);
         return new WebResult(StringConst.ERRCODE_SUCCESS, "扣除成功", 1);
+    }
+
+    /**
+     * 根据月份查询类型的售出量
+     */
+    @ResponseBody
+    @RequestMapping("/queryModelCountsByMonth")
+    public WebResult queryModelCountsByMonth(@RequestParam int pageNo, @RequestParam int pageSize, @RequestParam int year, @RequestParam int month,
+                                     @PathVariable String channel, HttpServletRequest request, HttpServletResponse response) {
+        SessionInfo sessionInfo = UserSessionFunCallUtil.getCurrentSession(request);
+        if (sessionInfo == null) {
+            throw new MessageException(StringConst.ERRCODE_MUSTLOGIN, "你没有登录！");
+        }
+
+        if (sessionInfo.getType() == null) {
+            throw new MessageException(StringConst.ERRCODE_X, "你的类型为空！");
+        }
+
+        /**判断权限*/
+        if (!AuthorityUtils.checkUserAccountAuth(sessionInfo.getType(), sessionInfo.getAuthority())) {
+            throw new MessageException(StringConst.ERRCODE_X, "你没有操作权限！");
+        }
+
+        Page page = goodsMonthStatisticsComponent.queryGoodsMonthStatisticsByPage(year, month, pageNo, pageSize);
+        return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", page);
     }
 
 }

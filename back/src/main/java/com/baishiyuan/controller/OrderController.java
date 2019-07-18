@@ -6,10 +6,7 @@ import com.artofsolving.jodconverter.openoffice.connection.OpenOfficeConnection;
 import com.artofsolving.jodconverter.openoffice.connection.SocketOpenOfficeConnection;
 import com.artofsolving.jodconverter.openoffice.converter.OpenOfficeDocumentConverter;
 import com.baishiyuan.DTO.OrderQueryDTO;
-import com.baishiyuan.component.OrderComponent;
-import com.baishiyuan.component.ShoppingCartComponent;
-import com.baishiyuan.component.UserAccountComponent;
-import com.baishiyuan.component.UserInfoComponent;
+import com.baishiyuan.component.*;
 import com.baishiyuan.domain.*;
 import com.baishiyuan.exception.MessageException;
 import com.baishiyuan.utils.*;
@@ -42,6 +39,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by Administrator on 2019/4/21 0021.
@@ -70,6 +69,14 @@ public class OrderController {
     @Autowired
     protected Mapper dozerMapper;
 
+    @Resource
+    private ClientBenefitComponent clientBenefitComponent;
+
+    @Resource
+    private GoodsMonthStatisticsComponent goodsMonthStatisticsComponent;
+
+    static ExecutorService exec = Executors.newFixedThreadPool(5);
+
     @RequestMapping(value = "", method = {RequestMethod.POST})
     public WebResult order(@RequestParam String address, @RequestParam String phone, @RequestParam String name, String remark, HttpServletRequest request) {
         SessionInfo sessionInfo = getSession(request);
@@ -92,6 +99,9 @@ public class OrderController {
             }
         }
 
+        //选取modelId和number
+        Map<String, Integer> modelToNumberDTOMap = new HashMap<>();
+
         Query query = new Query();
         query.addCriteria(Criteria.where("id").in(goodsIds));
         List<Goods> goodss = mongoTemplate.find(query, Goods.class);
@@ -106,6 +116,14 @@ public class OrderController {
             dozerMapper.map(goods, orderGoods);
             orderGoods.setNumber(goodsIdToNumber.get(goods.getId()));
             orderGoodss.add(orderGoods);
+
+            if(modelToNumberDTOMap.containsKey(goods.getModelId())) {
+                int number = modelToNumberDTOMap.get(goods.getModelId());
+                number += goodsIdToNumber.get(goods.getId());
+                modelToNumberDTOMap.put(goods.getModelId(), number);
+            }else {
+                modelToNumberDTOMap.put(goods.getModelId(), goodsIdToNumber.get(goods.getId()));
+            }
 
             //计算总金钱
             totalPrice += goodsIdToNumber.get(goods.getId())*goods.getPrice();
@@ -136,6 +154,16 @@ public class OrderController {
         order.setPrintNumber(0);
         order.setRemark(remark);
 
+        //折扣操作
+        ClientBenefit clientBenefit = clientBenefitComponent.getClientBenefitByUserId(sessionInfo.getUserId());
+        if(clientBenefit != null) {
+            if(clientBenefit.getDisCount() != null && clientBenefit.getType() != null && clientBenefit.getType() == 0) {
+                totalPrice = new Double(totalPrice * clientBenefit.getDisCount()).intValue();
+            }
+        }
+
+        order.setCostMoney(totalPrice);
+
         Query userAccountQuery = new Query();
         userAccountQuery.addCriteria(Criteria.where("userId").is(sessionInfo.getUserId()));
         userAccountQuery.addCriteria(Criteria.where("totalAssets").gte(totalPrice));
@@ -153,11 +181,29 @@ public class OrderController {
             orderComponent.upadateFlowRemark(userFlowId, "购买商品,订单号为:" + order.getId());
         }
 
-
         //清除购物车
         shoppingCartComponent.deleteGoodsInShoppingCartByUserId(sessionInfo.getUserId(), shoppingCartIds);
 
+        //统计每个月的购物量
+        exec.execute(new Task(modelToNumberDTOMap));
+
         return new WebResult(StringConst.ERRCODE_SUCCESS, "下订单成功", 1);
+    }
+
+
+    public class Task implements Runnable {
+        private Map<String, Integer> map;
+
+        public Task(Map<String, Integer> map) {
+            this.map = map;
+        }
+
+        public void run() {
+            Set<String> keySets = map.keySet();
+            for(String modelId : keySets) {
+                goodsMonthStatisticsComponent.addGoodsMonthStatistics(modelId, map.get(modelId));
+            }
+        }
     }
 
     @RequestMapping(value = "/{orderId}", method = {RequestMethod.PUT})
@@ -259,9 +305,9 @@ public class OrderController {
         try
         {
 //            response.setContentType("application/msexcel;charset=utf-8");
-            response.setContentType("application/force-download");
+//            response.setContentType("application/force-download");
             response.setContentType("application/octet-stream");
-            response.setContentType("application/download");
+//            response.setContentType("application/download");
             response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
 
             //创建配置实例
@@ -410,7 +456,8 @@ public class OrderController {
 
             response.getOutputStream().flush();
             response.getOutputStream().close();
-
+            // 指定允许其他域名访问
+            response.setHeader("Access-Control-Allow-Origin", "*");
         } catch (Exception e) {
             e.printStackTrace();
         }
