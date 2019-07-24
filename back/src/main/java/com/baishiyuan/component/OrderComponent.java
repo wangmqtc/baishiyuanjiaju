@@ -120,7 +120,7 @@ public class OrderComponent {
         return page;
     }
 
-    public JSONObject reduceMoney(int totalPrize, int userId){
+    public JSONObject reduceMoney(int totalPrize, int userId, String clientName){
 
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
@@ -148,6 +148,7 @@ public class OrderComponent {
         userAccountFlow.setOperation(1);
         userAccountFlow.setReason("购买商品");
         userAccountFlow.setCreator(userId);
+        userAccountFlow.setClinetName(clientName);
         mongoTemplate.insert(userAccountFlow);
 
         JSONObject result = new JSONObject();

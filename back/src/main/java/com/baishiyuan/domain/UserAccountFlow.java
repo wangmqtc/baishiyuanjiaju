@@ -52,6 +52,8 @@ public class UserAccountFlow implements Serializable{
     /** 相应的事件ID*/
     private String eventId;
 
+    private String clinetName;
+
     public String getId() {
         return id;
     }
@@ -154,5 +156,13 @@ public class UserAccountFlow implements Serializable{
 
     public void setCreator(int creator) {
         this.creator = creator;
+    }
+
+    public String getClinetName() {
+        return clinetName;
+    }
+
+    public void setClinetName(String clinetName) {
+        this.clinetName = clinetName;
     }
 }

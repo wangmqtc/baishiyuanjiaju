@@ -173,7 +173,7 @@ public class OrderController {
             throw new MessageException(StringConst.ERRCODE_X, "您的余额不够！");
         }
 
-       JSONObject jsonObject = orderComponent.reduceMoney(totalPrice, sessionInfo.getUserId());
+       JSONObject jsonObject = orderComponent.reduceMoney(totalPrice, sessionInfo.getUserId(), name);
         mongoTemplate.insert(order);
 
         String userFlowId = jsonObject.getString("id");
