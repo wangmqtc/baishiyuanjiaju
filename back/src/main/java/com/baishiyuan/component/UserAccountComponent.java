@@ -292,6 +292,7 @@ public class UserAccountComponent{
             Query query = new Query();
             query.addCriteria(Criteria.where("isDeleted").is(0));
             query.addCriteria(Criteria.where("creaDay").gte(startDay).lt(endDay));
+            query.addCriteria(Criteria.where("changeReasonType").in(0,1,3));
             List<UserAccountFlow> userAccountFlows = mongoTemplate.find(query, UserAccountFlow.class);
 
             int allMoney = 0;
