@@ -6,6 +6,7 @@ import com.baishiyuan.domain.SessionInfo;
 import com.baishiyuan.domain.UserInfo;
 import com.baishiyuan.domain.WebResult;
 import com.baishiyuan.exception.MessageException;
+import com.baishiyuan.utils.AuthorityUtils;
 import com.baishiyuan.utils.Page;
 import com.baishiyuan.utils.StringConst;
 import com.baishiyuan.utils.UserSessionFunCallUtil;
@@ -17,10 +18,11 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -31,7 +33,7 @@ import java.util.List;
 /**
  * Created by Administrator on 2019/7/24 0024.
  */
-@Controller
+@RestController
 @RequestMapping("/flow")
 public class FlowController {
 
@@ -43,21 +45,37 @@ public class FlowController {
     @Resource
     private UserInfoComponent userInfoComponent;
 
-    @RequestMapping(value = "/queryFlowByUserId")
-    public WebResult queryUserAccountFlowByUserId(@RequestParam int pageNo, @RequestParam int pageSize, HttpServletRequest request) {
+    @RequestMapping(value = "/queryFlowBySelf", method = {RequestMethod.GET})
+    public WebResult queryUserAccountFlowBySelf(@RequestParam int pageNo, @RequestParam int pageSize, HttpServletRequest request) {
         SessionInfo sessionInfo = getSession(request);
 
         Page page = flowComponent.queryFlowByPage(sessionInfo.getUserId(), pageNo, pageSize);
         return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", page);
     }
 
-    @RequestMapping(value = "/exportFlowByUserId")
-    public void exportFlowByUserId(@RequestParam int pageNo, @RequestParam int pageSize, HttpServletRequest request, HttpServletResponse response) {
-        SessionInfo sessionInfo = getSession(request);
+    @RequestMapping(value = "/queryFlowByNickName", method = {RequestMethod.GET})
+    public WebResult queryFlowByNickName(@RequestParam int pageNo, @RequestParam int pageSize, @RequestParam String userName, HttpServletRequest request) {
+        SessionInfo sessionInfo = checkFlowAuth(request);
 
-        UserInfo userInfo = userInfoComponent.getUserInfoByUserId(sessionInfo.getUserId());
+        UserInfo userInfo = userInfoComponent.getUserInfoByNickName(userName);
+        if(userInfo == null) {
+            throw new MessageException(StringConst.ERRCODE_X, "未找到该用户");
+        }
 
-        Page page = flowComponent.queryFlowByPage(sessionInfo.getUserId(), pageNo, pageSize);
+        Page page = flowComponent.queryFlowByPage(userInfo.getUserId(), pageNo, pageSize);
+        return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", page);
+    }
+
+    @RequestMapping(value = "/exportFlowByNickName", method = {RequestMethod.GET})
+    public void exportFlowByNickName(@RequestParam int pageNo, @RequestParam int pageSize, @RequestParam String userName, HttpServletRequest request, HttpServletResponse response) {
+        SessionInfo sessionInfo = checkFlowAuth(request);
+
+        UserInfo userInfo = userInfoComponent.getUserInfoByNickName(userName);
+        if(userInfo == null) {
+            throw new MessageException(StringConst.ERRCODE_X, "未找到该用户");
+        }
+
+        Page page = flowComponent.queryFlowByPage(userInfo.getUserId(), pageNo, pageSize);
         List<FlowVO> flowVOS = page.getList();
 
         HSSFWorkbook workBook = new HSSFWorkbook();
@@ -95,7 +113,7 @@ public class FlowController {
 
             style.setAlignment(HorizontalAlignment.CENTER);
             dataCell = dataRow.createCell( 2);
-            dataCell.setCellValue(new Integer(flowVO.getChangeMoney()).toString().concat(", ").concat(flowVO.getReason()));
+            dataCell.setCellValue(new Double(flowVO.getChangeMoney()).toString().concat(", ").concat(flowVO.getReason()));
             dataCell.setCellStyle(style);
 
             style.setAlignment(HorizontalAlignment.CENTER);
@@ -135,6 +153,24 @@ public class FlowController {
         SessionInfo sessionInfo = UserSessionFunCallUtil.getCurrentSession(request);
         if (sessionInfo == null) {
             throw new MessageException(StringConst.ERRCODE_MUSTLOGIN, "你没有登录！");
+        }
+
+        return sessionInfo;
+    }
+
+    private SessionInfo checkFlowAuth(HttpServletRequest request) {
+        SessionInfo sessionInfo = UserSessionFunCallUtil.getCurrentSession(request);
+        if (sessionInfo == null) {
+            throw new MessageException(StringConst.ERRCODE_MUSTLOGIN, "你没有登录！");
+        }
+
+        if (sessionInfo.getType() == null) {
+            throw new MessageException(StringConst.ERRCODE_X, "你的类型为空！");
+        }
+
+        /**判断权限*/
+        if (!AuthorityUtils.checkFlowScanAuth(sessionInfo.getType(), sessionInfo.getAuthority())) {
+            throw new MessageException(StringConst.ERRCODE_X, "你没有操作权限！");
         }
 
         return sessionInfo;

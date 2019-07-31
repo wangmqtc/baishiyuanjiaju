@@ -55,7 +55,7 @@ public class UserInfo implements Serializable{
      * 财务管理
      * 查看财务记录
      * 订单管理
-     * 账号设置 针对用户自己*/
+     * 查看流水*/
     private Integer authority;
 
     public String getId() {

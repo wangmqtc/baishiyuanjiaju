@@ -47,9 +47,11 @@ public class FlowComponent {
                 flowVO.setGmtCreate(sdf.format(userAccountFlow.getGmtCreate()));
                 flowVO.setReason(userAccountFlow.getReason());
                 if(userAccountFlow.getOperation() == 1) {
-                    flowVO.setChangeMoney(userAccountFlow.getChangeMoney() * -1);
+                    double changeMoney = userAccountFlow.getChangeMoney()/100;
+                    flowVO.setChangeMoney(changeMoney * -1);
                 }else{
-                    flowVO.setChangeMoney(userAccountFlow.getChangeMoney());
+                    double changeMoney = userAccountFlow.getChangeMoney()/100;
+                    flowVO.setChangeMoney(changeMoney);
                 }
                 if(!StringUtils.isEmpty(userAccountFlow.getClinetName())) {
                     flowVO.setClientName(userAccountFlow.getClinetName());

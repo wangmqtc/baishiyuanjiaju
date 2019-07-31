@@ -12,7 +12,7 @@ public class FlowVO implements Serializable{
     private Integer userId;
 
     /** 变化的金额*/
-    private Integer changeMoney;
+    private Double changeMoney;
 
     /** 变化的原因*/
     private String reason;
@@ -30,11 +30,11 @@ public class FlowVO implements Serializable{
         this.userId = userId;
     }
 
-    public Integer getChangeMoney() {
+    public Double getChangeMoney() {
         return changeMoney;
     }
 
-    public void setChangeMoney(Integer changeMoney) {
+    public void setChangeMoney(Double changeMoney) {
         this.changeMoney = changeMoney;
     }
 

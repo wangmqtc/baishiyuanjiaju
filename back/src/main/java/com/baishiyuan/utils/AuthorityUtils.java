@@ -110,4 +110,21 @@ public class AuthorityUtils {
         }
         return false;
     }
+
+    public static boolean checkFlowScanAuth(int type, Integer authority) {
+        if(type == 0){
+            return  true;
+        }
+
+        if(type == 3){
+            if(authority == null){
+                return false;
+            }
+            int auth =  authority.intValue() & 64;
+            if(auth == 64){
+                return true;
+            }
+        }
+        return false;
+    }
 }
