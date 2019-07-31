@@ -1,17 +1,14 @@
 package com.baishiyuan.controller;
 
 import com.alibaba.fastjson.JSONObject;
-import com.artofsolving.jodconverter.DocumentConverter;
-import com.artofsolving.jodconverter.openoffice.connection.OpenOfficeConnection;
-import com.artofsolving.jodconverter.openoffice.connection.SocketOpenOfficeConnection;
-import com.artofsolving.jodconverter.openoffice.converter.OpenOfficeDocumentConverter;
 import com.baishiyuan.DTO.OrderQueryDTO;
 import com.baishiyuan.component.*;
 import com.baishiyuan.domain.*;
 import com.baishiyuan.exception.MessageException;
 import com.baishiyuan.utils.*;
-import com.lowagie.text.Document;
-import com.lowagie.text.pdf.*;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.pdf.*;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateExceptionHandler;
@@ -33,7 +30,6 @@ import org.xhtmlrenderer.pdf.ITextFontResolver;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import javax.annotation.Resource;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
@@ -405,7 +401,7 @@ public class OrderController {
         }
     }
 
-    @RequestMapping(value = "/orderExortPDF/{orderId}", method = {RequestMethod.GET})
+
     public void orderExortPDF(@PathVariable String orderId, HttpServletRequest request, HttpServletResponse response) {
         Order order = orderComponent.getSingleOrderById(orderId);
         if(order == null) {
@@ -422,12 +418,13 @@ public class OrderController {
         String fileName = "order_" + orderId + ".pdf";
 
         // 模板路径
-//        String templatePath = "/programs/order.pdf";
-        String templatePath = "./order.pdf";
+        String templatePath = "./order_pdf.pdf";
         PdfReader reader;
         ByteArrayOutputStream bos;
         PdfStamper stamper;
         try {
+            response.setContentType("application/pdf");
+
             reader = new PdfReader(templatePath);// 读取pdf模板
             bos = new ByteArrayOutputStream();
             stamper = new PdfStamper(reader, bos);
@@ -446,6 +443,7 @@ public class OrderController {
             stamper.setFormFlattening(true);// 如果为false那么生成的PDF文件还能编辑，一定要设为true
             stamper.close();
 
+            response.setBufferSize(10028000);
             Document doc = new Document();
             PdfCopy copy = new PdfCopy(doc, response.getOutputStream());
             doc.open();
@@ -461,99 +459,56 @@ public class OrderController {
 
     }
 
+    @RequestMapping(value = "/orderExortPDF/{orderId}", method = {RequestMethod.GET})
     public void orderExortPDF2(@PathVariable String orderId, HttpServletRequest request, HttpServletResponse response) {
-        SessionInfo sessionInfo = checkOrderAuth(request);
-
-        HttpHeaders headers = new HttpHeaders();
-
-        int userId = sessionInfo.getUserId();
-        UserInfo userInfo = userInfoComponent.getUserInfoByUserId(userId);
-        if(userInfo == null) {
-            throw new MessageException(StringConst.ERRCODE_X, "没有此用户");
-        }
-
         Order order = orderComponent.getSingleOrderById(orderId);
         if(order == null) {
             throw new MessageException(StringConst.ERRCODE_X, "没有此订单");
         }
 
+        UserInfo userInfo = userInfoComponent.getUserInfoByUserId(order.getUserId());
+        if(userInfo == null) {
+            throw new MessageException(StringConst.ERRCODE_X, "没有此用户");
+        }
+
         Map<String, String> dataMap = orderComponent.createDoc(order, userInfo);
 
-        String fileName = "order_" + orderId + ".xlsx";
+        // 模板路径
+        String templatePath = "./order_pdf.pdf";
+
+        PdfReader reader;
+        FileOutputStream out;
+        ByteArrayOutputStream bos;
+        PdfStamper stamper;
         try {
-            byte[] bytes = fileName.getBytes("gb2312");
-            fileName = new String(bytes, "ISO8859-1");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+            response.setContentType("application/pdf");
 
-        File files = new File("./tempFiles");
-        if(!files.exists()) {
-            files.mkdir();
-        }
-        File outputFile = new File("./tempFiles/" + fileName);
-
-        try
-        {
-            outputFile.createNewFile();
-            OutputStream fos = new FileOutputStream(outputFile);
-
-            //创建配置实例
-            Configuration configuration = new Configuration();
-
-            //设置编码
-            configuration.setDefaultEncoding("UTF-8");
-
-            //ftl模板文件
-            configuration.setClassForTemplateLoading(WordUtil.class,"/");
-
-            //获取模板
-            Template template = configuration.getTemplate("./example.ftl");
-
-            //将模板和数据模型合并生成文件
-            Writer out = new BufferedWriter(new OutputStreamWriter(fos,"utf-8"));
-            //生成文件
-            template.process(dataMap, out);
-
-            //关闭流
-            out.flush();
-            out.close();
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-        }
-
-        try {
-            String fileName1 = "order_" + orderId + ".pdf";
-            File inputFile = new File("./tempFiles/" + fileName);
-            File outputFile1 = new File("./tempFiles/" + fileName1);
-            inputFile.createNewFile();
-            outputFile1.createNewFile();
-            // connect to an OpenOffice.org instance running on port 8100
-            OpenOfficeConnection connection = new SocketOpenOfficeConnection(8100);
-            connection.connect();
-
-            // convert
-            DocumentConverter converter = new OpenOfficeDocumentConverter(connection);
-
-            converter.convert(inputFile, outputFile1);
-
-            inputFile.deleteOnExit();
-            InputStream in=new FileInputStream(outputFile1);
-            int len=0;
-            byte[] buffer=new byte[1024];
-            ServletOutputStream out=response.getOutputStream();
-            while((len=in.read(buffer))>0){
-                out.write(buffer,0,len);
+            BaseFont bf = BaseFont.createFont("./simsun.ttc,1" , BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            Font FontChinese = new Font(bf, 3f, Font.NORMAL);
+            reader = new PdfReader(templatePath);// 读取pdf模板
+            bos = new ByteArrayOutputStream();
+            stamper = new PdfStamper(reader, bos);
+            AcroFields form = stamper.getAcroFields();
+            //文字类的内容处理
+            form.addSubstitutionFont(bf);
+            PdfContentByte over = stamper.getOverContent(0);
+            for(String key : dataMap.keySet()){
+                String value = dataMap.get(key);
+                form.setFieldProperty(key,"textfont",3,null);
+                form.setField(key,value);
             }
-            in.close();
-            out.close();
+            stamper.setFormFlattening(true);// 如果为false，生成的PDF文件可以编辑，如果为true，生成的PDF文件不可以编辑
+            stamper.close();
 
-            // close the connection
-            connection.disconnect();
+            Document doc = new Document();
+            PdfCopy copy = new PdfCopy(doc, response.getOutputStream());
+            doc.open();
+            PdfImportedPage importPage = copy.getImportedPage(new PdfReader(bos.toByteArray()), 1);
+            copy.addPage(importPage);
+            doc.close();
 
-            outputFile1.deleteOnExit();
+            response.getOutputStream().flush();
+            response.getOutputStream().close();
         } catch (Exception e) {
             e.printStackTrace();
         }
