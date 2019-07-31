@@ -22,6 +22,8 @@ public class FlowVO implements Serializable{
 
     private String clientName;
 
+    private String nickName;
+
     public Integer getUserId() {
         return userId;
     }
@@ -60,5 +62,13 @@ public class FlowVO implements Serializable{
 
     public void setClientName(String clientName) {
         this.clientName = clientName;
+    }
+
+    public String getNickName() {
+        return nickName;
+    }
+
+    public void setNickName(String nickName) {
+        this.nickName = nickName;
     }
 }

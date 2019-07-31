@@ -421,10 +421,6 @@ public class UserController extends BaseController{
         if (sessionInfo.getType() == null) {
             throw new MessageException(StringConst.ERRCODE_SUCCESS, "你的类型为空！");
         }
-        /**判断权限*/
-        if (!AuthorityUtils.checkUserInfoAuth(sessionInfo.getType(), sessionInfo.getAuthority())) {
-            throw new MessageException(StringConst.ERRCODE_X, "你没有操作权限！");
-        }
 
         Page page = userInfoComponent.getUserInfos(pageNo, pageSize);
         if(CollectionUtils.isEmpty(page.getList())){

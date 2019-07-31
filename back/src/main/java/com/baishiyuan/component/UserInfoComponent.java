@@ -15,10 +15,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Component("userInfoComponent")
 public class UserInfoComponent{
@@ -198,7 +195,7 @@ public class UserInfoComponent{
         return userInfo;
     }
 
-    public Map<Integer, UserInfo> getUserInfosByUserIds(List<Integer> list) {
+    public Map<Integer, UserInfo> getUserInfosByUserIds(Set<Integer> list) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").in(list));
         query.addCriteria(Criteria.where("isDeleted").is(0));

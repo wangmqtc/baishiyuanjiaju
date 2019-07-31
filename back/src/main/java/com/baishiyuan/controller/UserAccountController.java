@@ -71,7 +71,7 @@ public class UserAccountController extends BaseController {
             List<UserAccount> userAccounts = page.getList();
             List<UserAccountVO> userAccountVOs = new ArrayList<>();
 
-            List<Integer> userIds = new ArrayList<>();
+            Set<Integer> userIds = new HashSet<>();
             for (UserAccount userAccount : userAccounts) {
                 userIds.add(userAccount.getUserId());
             }
@@ -275,12 +275,10 @@ public class UserAccountController extends BaseController {
         if (!CollectionUtils.isEmpty(page.getList())) {
             List<UserAccountFlow> userAccountFlows = page.getList();
             List<UserAccountFlowVO> userAccountFlowVOS = new ArrayList<>();
-            Set<Integer> userIdSet = new HashSet<>();
-            List<Integer> userIds = new ArrayList<>();
+            Set<Integer> userIds = new HashSet<>();
             for (UserAccountFlow userAccountFlow : userAccountFlows) {
-                userIdSet.add(userAccountFlow.getUserId());
+                userIds.add(userAccountFlow.getUserId());
             }
-            userIds.addAll(userIdSet);
 
             Map<Integer, UserInfo> userInfoMap = userInfoComponent.getUserInfosByUserIds(userIds);
 

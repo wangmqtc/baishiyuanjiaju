@@ -129,6 +129,25 @@ public class OrderController {
             totalPrice += goodsIdToNumber.get(goods.getId())*goods.getPrice();
         }
 
+        //折扣操作
+        ClientBenefit clientBenefit = clientBenefitComponent.getClientBenefitByUserId(sessionInfo.getUserId());
+        if(clientBenefit != null) {
+            if(clientBenefit.getDisCount() != null && clientBenefit.getType() != null && clientBenefit.getType() == 0) {
+                totalPrice = new Double(totalPrice * clientBenefit.getDisCount()).intValue();
+            }
+        }
+
+        Query userAccountQuery = new Query();
+        userAccountQuery.addCriteria(Criteria.where("userId").is(sessionInfo.getUserId()));
+        userAccountQuery.addCriteria(Criteria.where("totalAssets").gte(totalPrice));
+        userAccountQuery.addCriteria(Criteria.where("availableAssets").gte(totalPrice));
+        boolean isExist = mongoTemplate.exists(userAccountQuery, UserAccount.class);
+        if(!isExist) {
+            throw new MessageException(StringConst.ERRCODE_X, "您的余额不够！");
+        }
+
+       JSONObject jsonObject = orderComponent.reduceMoney(totalPrice, sessionInfo.getUserId(), name);
+
         String serialNumber = "";
         try {
             OrderSerialNumber orderSerialNumber = orderComponent.getOrderSerialNumber();
@@ -140,7 +159,7 @@ public class OrderController {
         }
 
         Order order = new Order();
-        order.setOrderserializable(serialNumber);
+        order.setCostMoney(totalPrice);
         order.setUserId(sessionInfo.getUserId());
         order.setOrderGoodss(orderGoodss);
         order.setGmtCreate(new Date());
@@ -153,32 +172,12 @@ public class OrderController {
         order.setStatus(0);
         order.setPrintNumber(0);
         order.setRemark(remark);
-
-        //折扣操作
-        ClientBenefit clientBenefit = clientBenefitComponent.getClientBenefitByUserId(sessionInfo.getUserId());
-        if(clientBenefit != null) {
-            if(clientBenefit.getDisCount() != null && clientBenefit.getType() != null && clientBenefit.getType() == 0) {
-                totalPrice = new Double(totalPrice * clientBenefit.getDisCount()).intValue();
-            }
-        }
-
-        order.setCostMoney(totalPrice);
-
-        Query userAccountQuery = new Query();
-        userAccountQuery.addCriteria(Criteria.where("userId").is(sessionInfo.getUserId()));
-        userAccountQuery.addCriteria(Criteria.where("totalAssets").gte(totalPrice));
-        userAccountQuery.addCriteria(Criteria.where("availableAssets").gte(totalPrice));
-        boolean isExist = mongoTemplate.exists(userAccountQuery, UserAccount.class);
-        if(!isExist) {
-            throw new MessageException(StringConst.ERRCODE_X, "您的余额不够！");
-        }
-
-       JSONObject jsonObject = orderComponent.reduceMoney(totalPrice, sessionInfo.getUserId(), name);
+        order.setOrderserializable(serialNumber);
         mongoTemplate.insert(order);
 
         String userFlowId = jsonObject.getString("id");
         if(!StringUtils.isEmpty(userFlowId)) {
-            orderComponent.upadateFlowRemark(userFlowId, "购买商品,订单号为:" + order.getId());
+            orderComponent.upadateFlowRemark(userFlowId, "购买商品,订单号为:" + order.getOrderserializable());
         }
 
         //清除购物车
@@ -456,8 +455,6 @@ public class OrderController {
 
             response.getOutputStream().flush();
             response.getOutputStream().close();
-            // 指定允许其他域名访问
-            response.setHeader("Access-Control-Allow-Origin", "*");
         } catch (Exception e) {
             e.printStackTrace();
         }

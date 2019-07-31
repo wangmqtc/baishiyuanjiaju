@@ -28,7 +28,10 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.UnsupportedEncodingException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by Administrator on 2019/7/24 0024.
@@ -50,33 +53,58 @@ public class FlowController {
         SessionInfo sessionInfo = getSession(request);
 
         Page page = flowComponent.queryFlowByPage(sessionInfo.getUserId(), pageNo, pageSize);
+
+        List<FlowVO> flowVOS = page.getList();
+        for(FlowVO flowVO : flowVOS) {
+            flowVO.setNickName(sessionInfo.getNickName());
+        }
         return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", page);
     }
 
     @RequestMapping(value = "/queryFlowByNickName", method = {RequestMethod.GET})
-    public WebResult queryFlowByNickName(@RequestParam int pageNo, @RequestParam int pageSize, @RequestParam String userName, HttpServletRequest request) {
+    public WebResult queryFlowByNickName(@RequestParam int pageNo, @RequestParam int pageSize, String userName, HttpServletRequest request) {
         SessionInfo sessionInfo = checkFlowAuth(request);
 
-        UserInfo userInfo = userInfoComponent.getUserInfoByNickName(userName);
-        if(userInfo == null) {
-            throw new MessageException(StringConst.ERRCODE_X, "未找到该用户");
+        Integer userId = null;
+        if (!StringUtils.isEmpty(userName)) {
+            UserInfo userInfo = userInfoComponent.getUserInfoByNickName(userName);
+            if(userInfo != null) {
+                userId = userInfo.getUserId();
+            }
         }
 
-        Page page = flowComponent.queryFlowByPage(userInfo.getUserId(), pageNo, pageSize);
+        Page page = flowComponent.queryFlowByPage(userId, pageNo, pageSize);
+        Set<Integer> set = new HashSet<>();
+
+        List<FlowVO> flowVOS = page.getList();
+        for(FlowVO flowVO : flowVOS) {
+            set.add(flowVO.getUserId());
+        }
+        Map<Integer, UserInfo> map =  userInfoComponent.getUserInfosByUserIds(set);
+        for(FlowVO flowVO : flowVOS) {
+            flowVO.setNickName(map.get(flowVO.getUserId()).getNickName());
+        }
+
         return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", page);
     }
 
     @RequestMapping(value = "/exportFlowByNickName", method = {RequestMethod.GET})
-    public void exportFlowByNickName(@RequestParam int pageNo, @RequestParam int pageSize, @RequestParam String userName, HttpServletRequest request, HttpServletResponse response) {
+    public void exportFlowByNickName(String userName, HttpServletRequest request, HttpServletResponse response) {
         SessionInfo sessionInfo = checkFlowAuth(request);
 
-        UserInfo userInfo = userInfoComponent.getUserInfoByNickName(userName);
-        if(userInfo == null) {
-            throw new MessageException(StringConst.ERRCODE_X, "未找到该用户");
+        Integer userId = null;
+        if (!StringUtils.isEmpty(userName)) {
+            UserInfo userInfo = userInfoComponent.getUserInfoByNickName(userName);
+            userId = userInfo.getUserId();
         }
 
-        Page page = flowComponent.queryFlowByPage(userInfo.getUserId(), pageNo, pageSize);
-        List<FlowVO> flowVOS = page.getList();
+        List<FlowVO> flowVOS = flowComponent.queryFlows(userId);
+
+        Set<Integer> set = new HashSet<>();
+        for(FlowVO flowVO : flowVOS) {
+            set.add(flowVO.getUserId());
+        }
+        Map<Integer, UserInfo> map =  userInfoComponent.getUserInfosByUserIds(set);
 
         HSSFWorkbook workBook = new HSSFWorkbook();
         Sheet sheet = workBook.createSheet("收益榜导出表");
@@ -103,7 +131,11 @@ public class FlowController {
             Row dataRow = sheet.createRow(rowCount);
             style.setAlignment(HorizontalAlignment.CENTER);
             Cell dataCell = dataRow.createCell( 0);
-            dataCell.setCellValue(userInfo.getNickName());
+            String nickName = "";
+            if(map.get(flowVO.getUserId()) != null) {
+                nickName = map.get(flowVO.getUserId()).getNickName();
+            }
+            dataCell.setCellValue(nickName);
             dataCell.setCellStyle(style);
 
             style.setAlignment(HorizontalAlignment.CENTER);
@@ -113,7 +145,7 @@ public class FlowController {
 
             style.setAlignment(HorizontalAlignment.CENTER);
             dataCell = dataRow.createCell( 2);
-            dataCell.setCellValue(new Double(flowVO.getChangeMoney()).toString().concat(", ").concat(flowVO.getReason()));
+            dataCell.setCellValue(new Double(flowVO.getChangeMoney()).toString().concat("元, ").concat(flowVO.getReason()));
             dataCell.setCellStyle(style);
 
             style.setAlignment(HorizontalAlignment.CENTER);

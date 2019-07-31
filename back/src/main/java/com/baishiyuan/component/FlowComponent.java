@@ -24,10 +24,12 @@ public class FlowComponent {
     @Resource(name="mongoTemplate")
     private MongoTemplate mongoTemplate;
 
-    public Page queryFlowByPage(int userId, int pageNo, int pageSize) {
+    public Page queryFlowByPage(Integer userId, int pageNo, int pageSize) {
         Query query = new Query();
         query.addCriteria(Criteria.where("isDeleted").is(0));
-        query.addCriteria(Criteria.where("userId").is(userId));
+        if(userId != null) {
+            query.addCriteria(Criteria.where("userId").is(userId));
+        }
 
         Long totalNum = mongoTemplate.count(query, UserAccountFlow.class);
 
@@ -38,11 +40,31 @@ public class FlowComponent {
 
         List<UserAccountFlow> userAccountFlows = mongoTemplate.find(query, UserAccountFlow.class);
 
+        List<FlowVO> flowVOS = UserAccountFlowToFlowVOs(userAccountFlows);
+
+        page.setList(flowVOS);
+        return page;
+    }
+
+    public List<FlowVO> queryFlows(Integer userId) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("isDeleted").is(0));
+        if(userId != null) {
+            query.addCriteria(Criteria.where("userId").is(userId));
+        }
+
+        List<UserAccountFlow> userAccountFlows = mongoTemplate.find(query, UserAccountFlow.class);
+
+        List<FlowVO> flowVOS = UserAccountFlowToFlowVOs(userAccountFlows);
+        return flowVOS;
+    }
+
+    private List<FlowVO> UserAccountFlowToFlowVOs(List<UserAccountFlow> userAccountFlows) {
         List<FlowVO> flowVOS = new ArrayList<>();
         if(!CollectionUtils.isEmpty(userAccountFlows)) {
             for(UserAccountFlow userAccountFlow : userAccountFlows){
                 FlowVO flowVO = new FlowVO();
-                flowVO.setUserId(userId);
+                flowVO.setUserId(userAccountFlow.getUserId());
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 flowVO.setGmtCreate(sdf.format(userAccountFlow.getGmtCreate()));
                 flowVO.setReason(userAccountFlow.getReason());
@@ -59,9 +81,7 @@ public class FlowComponent {
                 flowVOS.add(flowVO);
             }
         }
-
-        page.setList(flowVOS);
-        return page;
+        return flowVOS;
     }
 
 }

@@ -131,8 +131,6 @@ public class ShoppingCartController {
         SessionInfo sessionInfo = getSession(request);
 
         long number = shoppingCartComponent.queryNumbers(sessionInfo.getUserId());
-        // 指定允许其他域名访问
-        response.setHeader("Access-Control-Allow-Origin", "*");
 
         return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", number);
     }
