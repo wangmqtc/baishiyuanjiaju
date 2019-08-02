@@ -87,31 +87,7 @@ public class OrderComponent {
 
         List<Order> orders = mongoTemplate.find(query, Order.class);
 
-        List<Integer> userIds = new ArrayList<>();
-        List<Map<String, Object>> orderVOS = new ArrayList<>();
-        Map<Integer, String> userIdToNickName = new HashMap<>();
-        if(!CollectionUtils.isEmpty(orders)) {
-            for(Order order : orders) {
-                userIds.add(order.getUserId());
-            }
-            Query query1 = new Query();
-            query1.addCriteria(Criteria.where("userId").in(userIds));
-            query1.addCriteria(Criteria.where("isDeleted").is(0));
-            List<UserInfo> userInfos = mongoTemplate.find(query1, UserInfo.class);
-            if(!CollectionUtils.isEmpty(userInfos)) {
-                for(UserInfo user : userInfos) {
-                    userIdToNickName.put(user.getUserId(), user.getNickName());
-                }
-            }
-
-            for(Order order : orders) {
-                Map<String, Object> map = JavaBeanUtils.convertBeanToMap(order);
-                DateFormat format = new SimpleDateFormat("yyyy-MM-dd kk:mm:ss");
-                map.put("gmtCreate", format.format(order.getGmtCreate()));
-                map.put("nickName", userIdToNickName.get(order.getUserId()));
-                orderVOS.add(map);
-            }
-        }
+        List<Map<String, Object>> orderVOS = convertOrderToOrderVOs(orders);
         page.setList(orderVOS);
         return page;
     }
@@ -200,8 +176,40 @@ public class OrderComponent {
         query.skip((pageNo-1) * pageSize);
         query.limit(pageSize);
 
-        page.setList(mongoTemplate.find(query, Order.class));
+        List<Order> orders = mongoTemplate.find(query, Order.class);
+        List<Map<String, Object>> orderVOS = convertOrderToOrderVOs(orders);
+        page.setList(orderVOS);
+
         return page;
+    }
+
+    private List<Map<String, Object>> convertOrderToOrderVOs(List<Order> orders) {
+        List<Integer> userIds = new ArrayList<>();
+        List<Map<String, Object>> orderVOS = new ArrayList<>();
+        Map<Integer, String> userIdToNickName = new HashMap<>();
+        if(!CollectionUtils.isEmpty(orders)) {
+            for(Order order : orders) {
+                userIds.add(order.getUserId());
+            }
+            Query query1 = new Query();
+            query1.addCriteria(Criteria.where("userId").in(userIds));
+            query1.addCriteria(Criteria.where("isDeleted").is(0));
+            List<UserInfo> userInfos = mongoTemplate.find(query1, UserInfo.class);
+            if(!CollectionUtils.isEmpty(userInfos)) {
+                for(UserInfo user : userInfos) {
+                    userIdToNickName.put(user.getUserId(), user.getNickName());
+                }
+            }
+
+            for(Order order : orders) {
+                Map<String, Object> map = JavaBeanUtils.convertBeanToMap(order);
+                DateFormat format = new SimpleDateFormat("yyyy-MM-dd kk:mm:ss");
+                map.put("gmtCreate", format.format(order.getGmtCreate()));
+                map.put("nickName", userIdToNickName.get(order.getUserId()));
+                orderVOS.add(map);
+            }
+        }
+        return orderVOS;
     }
 
     public Order orderDelivery(String orderId, String logistics, String logisticsNumber) {
