@@ -52,6 +52,7 @@ public class FlowComponent {
         if(userId != null) {
             query.addCriteria(Criteria.where("userId").is(userId));
         }
+        query.with(new Sort(Sort.Direction.DESC, "gmtCreate"));
 
         List<UserAccountFlow> userAccountFlows = mongoTemplate.find(query, UserAccountFlow.class);
 
@@ -69,10 +70,10 @@ public class FlowComponent {
                 flowVO.setGmtCreate(sdf.format(userAccountFlow.getGmtCreate()));
                 flowVO.setReason(userAccountFlow.getReason());
                 if(userAccountFlow.getOperation() == 1) {
-                    double changeMoney = userAccountFlow.getChangeMoney()/100;
+                    double changeMoney = new Double(userAccountFlow.getChangeMoney())/100;
                     flowVO.setChangeMoney(changeMoney * -1);
                 }else{
-                    double changeMoney = userAccountFlow.getChangeMoney()/100;
+                    double changeMoney = new Double(userAccountFlow.getChangeMoney())/100;
                     flowVO.setChangeMoney(changeMoney);
                 }
                 if(!StringUtils.isEmpty(userAccountFlow.getClinetName())) {

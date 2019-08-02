@@ -186,8 +186,6 @@ public class GoodsController {
 
     @RequestMapping(value = "/homePage", method = RequestMethod.GET)
     public WebResult homePage(@RequestParam int pageNo, @RequestParam int pageSize,  HttpServletRequest request) {
-        getSession(request);
-
         Page page = goodsComponent.queryGoodsByPage(pageNo, pageSize);
         return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", page);
     }

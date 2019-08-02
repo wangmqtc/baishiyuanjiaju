@@ -28,10 +28,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.UnsupportedEncodingException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by Administrator on 2019/7/24 0024.
@@ -68,7 +65,11 @@ public class FlowController {
         Integer userId = null;
         if (!StringUtils.isEmpty(userName)) {
             UserInfo userInfo = userInfoComponent.getUserInfoByNickName(userName);
-            if(userInfo != null) {
+            if(userInfo == null) {
+                Page page = new Page(0, pageNo, pageSize);
+                page.setList(new ArrayList());
+                return new WebResult(StringConst.ERRCODE_SUCCESS, "查询成功", page);
+            }else {
                 userId = userInfo.getUserId();
             }
         }
@@ -95,6 +96,9 @@ public class FlowController {
         Integer userId = null;
         if (!StringUtils.isEmpty(userName)) {
             UserInfo userInfo = userInfoComponent.getUserInfoByNickName(userName);
+            if(userInfo == null) {
+                throw new MessageException(StringConst.ERRCODE_X, "没有此用户");
+            }
             userId = userInfo.getUserId();
         }
 
@@ -112,16 +116,22 @@ public class FlowController {
         HSSFCellStyle style = workBook.createCellStyle();
         style.setAlignment(HorizontalAlignment.CENTER);
         Cell cell = row.createCell( 0);
-        cell.setCellValue("昵称");
+        cell.setCellValue("用户ID");
         cell.setCellStyle(style);
         cell = row.createCell( 1);
-        cell.setCellValue("时间");
+        cell.setCellValue("用户昵称");
         cell.setCellStyle(style);
         cell = row.createCell( 2);
-        cell.setCellValue("金额");
+        cell.setCellValue("客户名");
         cell.setCellStyle(style);
         cell = row.createCell( 3);
-        cell.setCellValue("购买商品的客户");
+        cell.setCellValue("金额");
+        cell.setCellStyle(style);
+        cell = row.createCell( 4);
+        cell.setCellValue("时间");
+        cell.setCellStyle(style);
+        cell = row.createCell( 5);
+        cell.setCellValue("备注");
         cell.setCellStyle(style);
 
         int totalPage = flowVOS.size();
@@ -130,7 +140,12 @@ public class FlowController {
             FlowVO flowVO = flowVOS.get(i);
             Row dataRow = sheet.createRow(rowCount);
             style.setAlignment(HorizontalAlignment.CENTER);
+
             Cell dataCell = dataRow.createCell( 0);
+            dataCell.setCellValue(flowVO.getUserId());
+            dataCell.setCellStyle(style);
+
+            dataCell = dataRow.createCell( 1);
             String nickName = "";
             if(map.get(flowVO.getUserId()) != null) {
                 nickName = map.get(flowVO.getUserId()).getNickName();
@@ -138,17 +153,14 @@ public class FlowController {
             dataCell.setCellValue(nickName);
             dataCell.setCellStyle(style);
 
-            style.setAlignment(HorizontalAlignment.CENTER);
-            dataCell = dataRow.createCell( 1);
-            dataCell.setCellValue(flowVO.getGmtCreate().substring(0, 10));
-            dataCell.setCellStyle(style);
-
-            style.setAlignment(HorizontalAlignment.CENTER);
             dataCell = dataRow.createCell( 2);
-            dataCell.setCellValue(new Double(flowVO.getChangeMoney()).toString().concat("元, ").concat(flowVO.getReason()));
+            if(!StringUtils.isEmpty(flowVO.getClientName())) {
+                dataCell.setCellValue(flowVO.getClientName());
+            }else {
+                dataCell.setCellValue("");
+            }
             dataCell.setCellStyle(style);
 
-            style.setAlignment(HorizontalAlignment.CENTER);
             dataCell = dataRow.createCell( 3);
             if(!StringUtils.isEmpty(flowVO.getClientName())) {
                 dataCell.setCellValue(flowVO.getClientName());
@@ -156,10 +168,29 @@ public class FlowController {
                 dataCell.setCellValue("");
             }
             dataCell.setCellStyle(style);
+
+            style.setAlignment(HorizontalAlignment.CENTER);
+            dataCell = dataRow.createCell( 4);
+            dataCell.setCellValue(new Double(flowVO.getChangeMoney()).toString());
+            dataCell.setCellStyle(style);
+
+
+            style.setAlignment(HorizontalAlignment.CENTER);
+            dataCell = dataRow.createCell( 5);
+            dataCell.setCellValue(flowVO.getGmtCreate());
+            dataCell.setCellStyle(style);
+
+            style.setAlignment(HorizontalAlignment.CENTER);
+            dataCell = dataRow.createCell( 6);
+            dataCell.setCellValue(flowVO.getReason());
+            dataCell.setCellStyle(style);
+
+
             rowCount++;
         }
 
-        String fileName = "个人流水详情.xls";
+        Date date = new Date();
+        String fileName = "flow_detal_" + date.getTime() + ".xls";
         try {
             byte[] bytes = fileName.getBytes("gb2312");
             fileName = new String(bytes, "ISO8859-1");

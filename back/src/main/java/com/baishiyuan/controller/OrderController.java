@@ -11,7 +11,6 @@ import com.itextpdf.text.Font;
 import com.itextpdf.text.pdf.*;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
-import freemarker.template.TemplateExceptionHandler;
 import org.dozer.Mapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,13 +20,10 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.http.HttpHeaders;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.xhtmlrenderer.pdf.ITextFontResolver;
-import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -52,9 +48,6 @@ public class OrderController {
 
     @Resource
     private ShoppingCartComponent shoppingCartComponent;
-
-    @Resource
-    private UserAccountComponent userAccountComponent;
 
     @Resource
     private OrderComponent orderComponent;
@@ -125,11 +118,13 @@ public class OrderController {
             totalPrice += goodsIdToNumber.get(goods.getId())*goods.getPrice();
         }
 
+        int isDisCount = 0;
         //折扣操作
         ClientBenefit clientBenefit = clientBenefitComponent.getClientBenefitByUserId(sessionInfo.getUserId());
         if(clientBenefit != null) {
             if(clientBenefit.getDisCount() != null && clientBenefit.getType() != null && clientBenefit.getType() == 0) {
                 totalPrice = new Double(totalPrice * clientBenefit.getDisCount()).intValue();
+                isDisCount = 1;
             }
         }
 
@@ -169,6 +164,8 @@ public class OrderController {
         order.setPrintNumber(0);
         order.setRemark(remark);
         order.setOrderserializable(serialNumber);
+        order.setIsDisCount(isDisCount);
+        order.setCreateDay(Utils.formatIntDay(Calendar.getInstance()));
         mongoTemplate.insert(order);
 
         String userFlowId = jsonObject.getString("id");
@@ -299,10 +296,7 @@ public class OrderController {
 
         try
         {
-//            response.setContentType("application/msexcel;charset=utf-8");
-//            response.setContentType("application/force-download");
             response.setContentType("application/octet-stream");
-//            response.setContentType("application/download");
             response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
 
             //创建配置实例
@@ -334,74 +328,7 @@ public class OrderController {
         }
     }
 
-    public void orderExortPDF1(@PathVariable String orderId, HttpServletRequest request, HttpServletResponse response) {
-        SessionInfo sessionInfo = getSession(request);
-
-        HttpHeaders headers = new HttpHeaders();
-
-        int userId = sessionInfo.getUserId();
-        UserInfo userInfo = userInfoComponent.getUserInfoByUserId(userId);
-        if(userInfo == null) {
-            throw new MessageException(StringConst.ERRCODE_X, "没有此用户");
-        }
-
-        Order order = orderComponent.getSingleOrderById(orderId);
-        if(order == null) {
-            throw new MessageException(StringConst.ERRCODE_X, "没有此订单");
-        }
-
-        Map<String, String> dataMap = orderComponent.createDoc(order, userInfo);
-
-        String fileName = "order_" + orderId + ".pdf";
-
-        try {
-            byte[] bytes = fileName.getBytes("gb2312");
-            fileName = new String(bytes, "ISO8859-1");
-            response.setContentType("application/force-download");
-            response.setContentType("application/download");
-            response.setContentType("application/octet-stream");
-
-            response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
-
-            //创建配置实例
-            Configuration configuration = new Configuration();
-            configuration.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
-            //设置编码
-            configuration.setDefaultEncoding("UTF-8");
-            //ftl模板文件
-            configuration.setClassForTemplateLoading(WordUtil.class,"/");
-            //获取模板
-            Template template = configuration.getTemplate("11.ftl");
-            //将模板和数据模型合并生成文件
-            StringWriter str = new StringWriter();
-            //生成文件
-            template.process(dataMap, str);
-            str.flush();
-            String htmlTmpStr = str.toString();
-            //关闭流
-            str.flush();
-            str.close();
-
-            /** -------生成PDF------- **/
-            ITextRenderer renderer = new ITextRenderer();
-            renderer.setDocumentFromString(htmlTmpStr);
-            // 解决中文支持问题
-            ITextFontResolver fontResolver = renderer.getFontResolver();
-            String simusun = "./simsun.ttc";
-            if (simusun != null) {
-                fontResolver.addFont(simusun, BaseFont.IDENTITY_H, BaseFont.NOT_EMBEDDED);
-                renderer.getSharedContext().setFontResolver(fontResolver);
-            }
-            renderer.layout();
-            renderer.createPDF(response.getOutputStream());
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-        }
-    }
-
-
+    @RequestMapping(value = "/orderExortPDF/{orderId}", method = {RequestMethod.GET})
     public void orderExortPDF(@PathVariable String orderId, HttpServletRequest request, HttpServletResponse response) {
         Order order = orderComponent.getSingleOrderById(orderId);
         if(order == null) {
@@ -415,66 +342,8 @@ public class OrderController {
 
         Map<String, String> dataMap = orderComponent.createDoc(order, userInfo);
 
-        String fileName = "order_" + orderId + ".pdf";
-
         // 模板路径
-        String templatePath = "./order_pdf.pdf";
-        PdfReader reader;
-        ByteArrayOutputStream bos;
-        PdfStamper stamper;
-        try {
-            response.setContentType("application/pdf");
-
-            reader = new PdfReader(templatePath);// 读取pdf模板
-            bos = new ByteArrayOutputStream();
-            stamper = new PdfStamper(reader, bos);
-            AcroFields form = stamper.getAcroFields();
-
-            form.setField("nickName",dataMap.get("nickName"));
-            form.setField("orderserializable",dataMap.get("orderserializable"));
-            form.setField("clientName",dataMap.get("clientName"));
-            form.setField("clientPhone",dataMap.get("clientPhone"));
-            form.setField("address",dataMap.get("address"));
-            form.setField("companyName",dataMap.get("companyName"));
-            form.setField("logisticsNumber",dataMap.get("logisticsNumber"));
-            form.setField("goodsName",dataMap.get("goodsName"));
-            form.setField("remark",dataMap.get("remark"));
-
-            stamper.setFormFlattening(true);// 如果为false那么生成的PDF文件还能编辑，一定要设为true
-            stamper.close();
-
-            response.setBufferSize(10028000);
-            Document doc = new Document();
-            PdfCopy copy = new PdfCopy(doc, response.getOutputStream());
-            doc.open();
-            PdfImportedPage importPage = copy.getImportedPage(new PdfReader(bos.toByteArray()), 1);
-            copy.addPage(importPage);
-            doc.close();
-
-            response.getOutputStream().flush();
-            response.getOutputStream().close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    @RequestMapping(value = "/orderExortPDF/{orderId}", method = {RequestMethod.GET})
-    public void orderExortPDF2(@PathVariable String orderId, HttpServletRequest request, HttpServletResponse response) {
-        Order order = orderComponent.getSingleOrderById(orderId);
-        if(order == null) {
-            throw new MessageException(StringConst.ERRCODE_X, "没有此订单");
-        }
-
-        UserInfo userInfo = userInfoComponent.getUserInfoByUserId(order.getUserId());
-        if(userInfo == null) {
-            throw new MessageException(StringConst.ERRCODE_X, "没有此用户");
-        }
-
-        Map<String, String> dataMap = orderComponent.createDoc(order, userInfo);
-
-        // 模板路径
-        String templatePath = "./order_pdf.pdf";
+        String templatePath = "/programs/order_pdf.pdf";
 
         PdfReader reader;
         FileOutputStream out;
@@ -483,7 +352,7 @@ public class OrderController {
         try {
             response.setContentType("application/pdf");
 
-            BaseFont bf = BaseFont.createFont("./simsun.ttc,1" , BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            BaseFont bf = BaseFont.createFont("/programs/simsun.ttc,1" , BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
             Font FontChinese = new Font(bf, 3f, Font.NORMAL);
             reader = new PdfReader(templatePath);// 读取pdf模板
             bos = new ByteArrayOutputStream();

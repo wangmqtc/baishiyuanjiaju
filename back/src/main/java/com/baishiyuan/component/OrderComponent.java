@@ -7,10 +7,7 @@ import com.baishiyuan.utils.JavaBeanUtils;
 import com.baishiyuan.utils.Page;
 import com.baishiyuan.utils.StringConst;
 import com.baishiyuan.utils.Utils;
-import org.apache.poi.xwpf.model.XWPFHeaderFooterPolicy;
-import org.apache.poi.xwpf.usermodel.*;
 import org.dozer.Mapper;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
@@ -23,7 +20,6 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
-import java.math.BigInteger;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -183,6 +179,31 @@ public class OrderComponent {
         return order;
     }
 
+    public Page getOrdersByStatusBySelf(Integer userId, int status, int pageNo, int pageSize) {
+        Query query = new Query();
+        if(status == 0){
+            query.addCriteria(Criteria.where("status").is(0));
+        }else if(status == 1){
+            query.addCriteria(Criteria.where("status").is(1));
+        }else if(status == 2){
+            query.addCriteria(Criteria.where("status").is(2));
+        }
+
+        if(userId != null){
+            query.addCriteria(Criteria.where("userId").is(userId));
+        }
+
+        Long totalNum = mongoTemplate.count(query, Order.class);
+
+        Page page = new Page(totalNum.intValue(), pageNo, pageSize);
+        query.with(new Sort(Sort.Direction.ASC ,"gmtCreate"));
+        query.skip((pageNo-1) * pageSize);
+        query.limit(pageSize);
+
+        page.setList(mongoTemplate.find(query, Order.class));
+        return page;
+    }
+
     public Order orderDelivery(String orderId, String logistics, String logisticsNumber) {
         Query query = new Query();
         query.addCriteria(Criteria.where("id").is(orderId));
@@ -272,200 +293,5 @@ public class OrderComponent {
         }
 
         return dataMap;
-    }
-
-    public XWPFDocument createDoc1(Order order, UserInfo user){
-        //Blank Document
-        XWPFDocument document= new XWPFDocument();
-
-        //添加标题
-        XWPFParagraph titleParagraph = document.createParagraph();
-        //设置段落居中
-        titleParagraph.setAlignment(ParagraphAlignment.CENTER);
-
-        XWPFRun titleParagraphRun = titleParagraph.createRun();
-        titleParagraphRun.setText("百世缘家具（出货单）");
-        titleParagraphRun.setColor("000000");
-        titleParagraphRun.setFontSize(16);
-
-
-//        //段落
-//        XWPFParagraph firstParagraph = document.createParagraph();
-//        XWPFRun run = firstParagraph.createRun();
-//        run.setText("详细信息");
-//        run.setColor("696969");
-//        run.setFontSize(16);
-//
-//        //设置段落背景颜色
-//        CTShd cTShd = run.getCTR().addNewRPr().addNewShd();
-//        cTShd.setVal(STShd.CLEAR);
-//        cTShd.setFill("97FFFF");
-
-
-//        //换行
-//        XWPFParagraph paragraph1 = document.createParagraph();
-//        XWPFRun paragraphRun1 = paragraph1.createRun();
-//        paragraphRun1.setText("\r");
-
-        //第一行
-        XWPFParagraph paragraph2 = document.createParagraph();
-        XWPFRun paragraphRun2 = paragraph2.createRun();
-        paragraphRun2.setText("客户姓名: " + user.getNickName() + "                   订单号: " + order.getOrderserializable());
-
-        //基本信息表格
-        XWPFTable infoTable = document.createTable();
-        //去表格边框
-        infoTable.getCTTbl().getTblPr().unsetTblBorders();
-
-
-        //列宽自动分割
-        CTTblWidth infoTableWidth = infoTable.getCTTbl().addNewTblPr().addNewTblW();
-        infoTableWidth.setType(STTblWidth.DXA);
-        infoTableWidth.setW(BigInteger.valueOf(9072));
-
-
-        //表格第一行
-        XWPFTableRow infoTableRowOne = infoTable.getRow(0);
-        infoTableRowOne.createCell();
-        infoTableRowOne.getCell(0).setText("收货人");
-        if(StringUtils.isEmpty(order.getClientName())) {
-            infoTableRowOne.addNewTableCell().setText("");
-        }else{
-            infoTableRowOne.addNewTableCell().setText(order.getClientName());
-        }
-
-        infoTableRowOne.addNewTableCell().setText("电话");
-        if(StringUtils.isEmpty(order.getClientPhone())) {
-            infoTableRowOne.addNewTableCell().setText("");
-        }else{
-            infoTableRowOne.addNewTableCell().setText(order.getClientPhone());
-        }
-
-        //表格第二行
-        XWPFTableRow infoTableRowTwo = infoTable.createRow();
-        infoTableRowTwo.getCell(0).setText("收件人地址");
-        if(StringUtils.isEmpty(order.getAddress())) {
-            infoTableRowTwo.getCell(1).setText("");
-        }else{
-            infoTableRowTwo.getCell(1).setText(order.getAddress());
-        }
-
-        //表格第三行
-        XWPFTableRow infoTableRowThree = infoTable.createRow();
-        infoTableRowThree.getCell(0).setText("发货物流");
-        if(StringUtils.isEmpty(order.getCompanyName())) {
-            infoTableRowThree.getCell(1).setText("");
-        }else{
-            infoTableRowThree.getCell(1).setText(order.getCompanyName());
-        }
-        infoTableRowThree.getCell(2).setText("单号");
-        if(StringUtils.isEmpty(order.getLogisticsNumber())) {
-            infoTableRowThree.getCell(3).setText("");
-        }else{
-            infoTableRowThree.getCell(3).setText(order.getLogisticsNumber());
-        }
-
-        String goodsName = "";
-        for(OrderGoods orderGoods : order.getOrderGoodss()) {
-            goodsName.concat(orderGoods.getModel()).concat("-").concat(orderGoods.getColor()).concat("-").concat(orderGoods.getMaterial()).
-                    concat(" * ").concat("" + orderGoods.getNumber() + ",");
-        }
-
-
-        //表格第四行
-        XWPFTableRow infoTableRowFour = infoTable.createRow();
-        infoTableRowFour.getCell(0).setText("购买物品");
-        infoTableRowFour.getCell(1).setText(goodsName);
-
-        //表格第五行
-        XWPFTableRow infoTableRowFive = infoTable.createRow();
-        infoTableRowFive.getCell(0).setText("其他备注");
-        if(StringUtils.isEmpty(order.getRemark())) {
-            infoTableRowFive.getCell(1).setText("");
-        }else{
-            infoTableRowFive.getCell(1).setText(order.getRemark());
-        }
-
-        //两个表格之间加个换行
-        XWPFParagraph paragraph = document.createParagraph();
-        XWPFRun paragraphRun = paragraph.createRun();
-        paragraphRun.setText("\r");
-
-        //最后一行
-        XWPFParagraph paragraph4 = document.createParagraph();
-        XWPFRun paragraphRun4 = paragraph4.createRun();
-        paragraphRun4.setText("说明：需方收到货物后立刻拆开包装，发现物品有质量问题，需于三天内通知本厂，逾期概不负责。如有疑问请致电 075763210900");
-
-        //换行
-        XWPFParagraph paragraph5 = document.createParagraph();
-        XWPFRun paragraphRun5 = paragraph5.createRun();
-        paragraphRun5.setText("\r");
-
-        //最后一行
-        XWPFParagraph paragraph6 = document.createParagraph();
-        XWPFRun paragraphRun6 = paragraph6.createRun();
-        paragraphRun6.setText("制单人：                         备货人签名：                         提货人/物流签名：                         ");
-
-//        //工作经历表格
-//        XWPFTable ComTable = document.createTable();
-//
-//
-//        //列宽自动分割
-//        CTTblWidth comTableWidth = ComTable.getCTTbl().addNewTblPr().addNewTblW();
-//        comTableWidth.setType(STTblWidth.DXA);
-//        comTableWidth.setW(BigInteger.valueOf(9072));
-
-//        //表格第一行
-//        XWPFTableRow comTableRowOne = ComTable.getRow(0);
-//        comTableRowOne.getCell(0).setText("开始时间");
-//        comTableRowOne.addNewTableCell().setText("结束时间");
-//        comTableRowOne.addNewTableCell().setText("公司名称");
-//        comTableRowOne.addNewTableCell().setText("title");
-//
-//        //表格第二行
-//        XWPFTableRow comTableRowTwo = ComTable.createRow();
-//        comTableRowTwo.getCell(0).setText("2016-09-06");
-//        comTableRowTwo.getCell(1).setText("至今");
-//        comTableRowTwo.getCell(2).setText("seawater");
-//        comTableRowTwo.getCell(3).setText("Java开发工程师");
-//
-//        //表格第三行
-//        XWPFTableRow comTableRowThree = ComTable.createRow();
-//        comTableRowThree.getCell(0).setText("2016-09-06");
-//        comTableRowThree.getCell(1).setText("至今");
-//        comTableRowThree.getCell(2).setText("seawater");
-//        comTableRowThree.getCell(3).setText("Java开发工程师");
-
-
-        CTSectPr sectPr = document.getDocument().getBody().addNewSectPr();
-        XWPFHeaderFooterPolicy policy = new XWPFHeaderFooterPolicy(document, sectPr);
-
-        //添加页眉
-        CTP ctpHeader = CTP.Factory.newInstance();
-        CTR ctrHeader = ctpHeader.addNewR();
-        CTText ctHeader = ctrHeader.addNewT();
-        String headerText = "Java POI create MS word file.";
-        ctHeader.setStringValue(headerText);
-        XWPFParagraph headerParagraph = new XWPFParagraph(ctpHeader, document);
-        //设置为右对齐
-        headerParagraph.setAlignment(ParagraphAlignment.RIGHT);
-        XWPFParagraph[] parsHeader = new XWPFParagraph[1];
-        parsHeader[0] = headerParagraph;
-        policy.createHeader(XWPFHeaderFooterPolicy.DEFAULT, parsHeader);
-
-
-        //添加页脚
-        CTP ctpFooter = CTP.Factory.newInstance();
-        CTR ctrFooter = ctpFooter.addNewR();
-        CTText ctFooter = ctrFooter.addNewT();
-        String footerText = "http://blog.csdn.net/zhouseawater";
-        ctFooter.setStringValue(footerText);
-        XWPFParagraph footerParagraph = new XWPFParagraph(ctpFooter, document);
-        headerParagraph.setAlignment(ParagraphAlignment.CENTER);
-        XWPFParagraph[] parsFooter = new XWPFParagraph[1];
-        parsFooter[0] = footerParagraph;
-        policy.createFooter(XWPFHeaderFooterPolicy.DEFAULT, parsFooter);
-
-        return document;
     }
 }
