@@ -14,6 +14,7 @@ import org.springframework.util.StringUtils;
 import javax.annotation.Resource;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -52,6 +53,10 @@ public class FlowComponent {
         if(userId != null) {
             query.addCriteria(Criteria.where("userId").is(userId));
         }
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, -90);
+        query.addCriteria(Criteria.where("gmtCreate").gte(calendar.getTime()));
         query.with(new Sort(Sort.Direction.DESC, "gmtCreate"));
 
         List<UserAccountFlow> userAccountFlows = mongoTemplate.find(query, UserAccountFlow.class);
@@ -83,6 +88,16 @@ public class FlowComponent {
             }
         }
         return flowVOS;
+    }
+
+    public static void main(String[] args) throws Exception{
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_MONTH, -3);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//        Date date = sdf.parse("2019-01-02 11:11:11");
+//        calendar.setTime(date);
+//        calendar.add(Calendar.DAY_OF_YEAR, -3);
+        System.out.println(sdf.format(calendar.getTime()));
     }
 
 }

@@ -161,27 +161,19 @@ public class FlowController {
             }
             dataCell.setCellStyle(style);
 
-            dataCell = dataRow.createCell( 3);
-            if(!StringUtils.isEmpty(flowVO.getClientName())) {
-                dataCell.setCellValue(flowVO.getClientName());
-            }else {
-                dataCell.setCellValue("");
-            }
-            dataCell.setCellStyle(style);
-
             style.setAlignment(HorizontalAlignment.CENTER);
-            dataCell = dataRow.createCell( 4);
+            dataCell = dataRow.createCell( 3);
             dataCell.setCellValue(new Double(flowVO.getChangeMoney()).toString());
             dataCell.setCellStyle(style);
 
 
             style.setAlignment(HorizontalAlignment.CENTER);
-            dataCell = dataRow.createCell( 5);
+            dataCell = dataRow.createCell( 4);
             dataCell.setCellValue(flowVO.getGmtCreate());
             dataCell.setCellStyle(style);
 
             style.setAlignment(HorizontalAlignment.CENTER);
-            dataCell = dataRow.createCell( 6);
+            dataCell = dataRow.createCell( 5);
             dataCell.setCellValue(flowVO.getReason());
             dataCell.setCellStyle(style);
 
