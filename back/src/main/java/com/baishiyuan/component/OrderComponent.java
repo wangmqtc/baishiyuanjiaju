@@ -163,6 +163,8 @@ public class OrderComponent {
             query.addCriteria(Criteria.where("status").is(1));
         }else if(status == 2){
             query.addCriteria(Criteria.where("status").is(2));
+        }else if(status == 3){
+            query.addCriteria(Criteria.where("status").is(3));
         }
 
         if(userId != null){
@@ -172,7 +174,7 @@ public class OrderComponent {
         Long totalNum = mongoTemplate.count(query, Order.class);
 
         Page page = new Page(totalNum.intValue(), pageNo, pageSize);
-        query.with(new Sort(Sort.Direction.ASC ,"gmtCreate"));
+        query.with(new Sort(Sort.Direction.DESC ,"gmtCreate"));
         query.skip((pageNo-1) * pageSize);
         query.limit(pageSize);
 
@@ -204,6 +206,7 @@ public class OrderComponent {
             for(Order order : orders) {
                 Map<String, Object> map = JavaBeanUtils.convertBeanToMap(order);
                 DateFormat format = new SimpleDateFormat("yyyy-MM-dd kk:mm:ss");
+                map.put("gmtCreate", format.format(order.getGmtCreate()));
                 map.put("gmtCreate", format.format(order.getGmtCreate()));
                 map.put("nickName", userIdToNickName.get(order.getUserId()));
                 orderVOS.add(map);
